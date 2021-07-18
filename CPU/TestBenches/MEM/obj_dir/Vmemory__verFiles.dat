@@ -1,0 +1,12 @@
+# DESCRIPTION: Verilator output: Timestamp data for --skip-identical.  Delete at will.
+C "-cc --exe memory.sv testbench.cpp"
+S   7484256  2105170  1616621967   651527647  1581264640           0 "/usr/bin/verilator_bin"
+S      3836   656563  1617669517   685809524  1617669517   477810330 "memory.sv"
+T     13438   656534  1617669592   313519935  1617669592   313519935 "obj_dir/Vmemory.cpp"
+T      3245   656533  1617669592   309519949  1617669592   309519949 "obj_dir/Vmemory.h"
+T      1805   656536  1617669592   313519935  1617669592   313519935 "obj_dir/Vmemory.mk"
+T       544   656501  1617669592   309519949  1617669592   309519949 "obj_dir/Vmemory__Syms.cpp"
+T       788   656505  1617669592   309519949  1617669592   309519949 "obj_dir/Vmemory__Syms.h"
+T       217   656537  1617669592   313519935  1617669592   313519935 "obj_dir/Vmemory__ver.d"
+T         0        0  1617669592   313519935  1617669592   313519935 "obj_dir/Vmemory__verFiles.dat"
+T      1244   656535  1617669592   313519935  1617669592   313519935 "obj_dir/Vmemory_classes.mk"

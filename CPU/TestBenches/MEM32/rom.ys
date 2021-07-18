@@ -1,0 +1,3 @@
+read_verilog -sv sram.sv
+read_verilog -sv rom.sv
+write_cxxrtl rom.cpp
