@@ -36,7 +36,7 @@ module reg_file(
     localparam x0 = 0;
     typedef logic [31:0] u_word;
 
-    u_word regs [31:0]; //32 registers each 32 bits long
+    u_word regs [31:0]; // 32 registers each 32 bits long
 
     always_comb begin
         if (rs1 == x0) 
