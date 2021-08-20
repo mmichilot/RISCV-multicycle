@@ -6,14 +6,13 @@
 // Create Date: 01/27/2019 08:37:11 AM
 // Design Name: OTTER Basic Memory
 // Module Name: memory
-// Project Name: OTTER CPU for OrangeCrab 
-// Target Devices: OrangeCrab r0.2 (Lattice ECP5-25U)
+// Project Name: OTTER CPU
+// Target Devices: N/A
 // Tool Versions: 
-// Description: Basic memory module for the OTTER CPU, utilizing the built-in
-// block RAM on the OrangeCrab's ECP5-25U.
+// Description: Basic memory module for the OTTER CPU
 // 
-// Dependencies: bram - Used to initialize, infer, and expose 
-//                      Single-Port Block RAM w/ Byte Enable
+// Dependencies: bram - Used to initialize and infer
+//                      single-port block RAM w/ Byte Enable.
 // 
 // Revision:
 // Revision 0.01 - File Created
@@ -21,56 +20,54 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
- module bram
-    #(
-        parameter RAM_ADDR_WIDTH = 13, // 8K x 32 (32KB)
-        parameter RAM_BUS_WIDTH = 32,
-    )
-
-    (
-        input clk,
-        input [3:0] we,
-        input [RAM_ADDR_WIDTH-1:0] addr,
-        input [RAM_BUS_WIDTH-1:0] data,
-        output logic [RAM_BUS_WIDTH-1:0] out,
-    );
-
-    // Raw memory block
-    (* syn_ramstyle="block_ram" *)
-    logic [RAM_BUS_WIDTH-1:0] mem [0:2**RAM_ADDR_WIDTH-1];
-    
-    // Initialize memory
-    initial begin
-        $readmemh("mem.txt", mem, 0, 2**RAM_ADDR_WIDTH-1);
-    end 
-
-    integer i;
-    always_ff @(posedge clk) begin
-
-        // Read
-        out <= mem[addr];
-
-        // Write
-        if (we) begin
-            for (i = 0; i < 4; i++) begin
-                if (we[i])
-                    mem[addr][8*i +: 8] <= data[8*i +: 8];
-            end
-        end
-    end
-    
-endmodule
-
 module memory 
     #(
-        parameter ADDR_WIDTH = 13;
-        parameter BUS_WIDTH = 31;
+        parameter ADDR_WIDTH = 13,
+        parameter BUS_WIDTH = 32
     )
 
     (
         input clk,
         input [BUS_WIDTH-1:0] addr,
         input [BUS_WIDTH-1:0] data,
-        output logic [BUS_WIDTH-1:0] out
-    )
+        output logic [BUS_WIDTH-1:0] out,
 
+        input [1:0] size,
+        input sign,
+        output error
+    );
+
+    enum {
+        BYTE = 2'b00,
+        HALF = 2'b01,
+        WORD = 2'b10
+    } e_size;
+
+    enum {
+        SIGNED = 1'b0,
+        UNSIGNED = 1'b1
+    } e_sign;
+
+    // Signals
+    logic [ADDR_WIDTH-1:0] s_addr;
+    logic [3:0] s_we;
+    logic [BUS_WIDTH-1:0] s_out;
+
+    // RAM Instantiation
+    bram #(
+        .RAM_ADDR_WIDTH(ADDR_WIDTH),
+        .RAM_BUS_WIDTH(BUS_WIDTH)
+    ) ram (
+        .clk(clk),
+        .we(s_we),
+        .addr(s_addr),
+        .data(data),
+        .out(s_out)
+    );
+
+    // Map address to nearest word boundary
+    assign s_addr = {addr[ADDR_WIDTH-1:2], 2'b0};
+
+    // TODO: Address error checks
+
+endmodule
