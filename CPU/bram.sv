@@ -20,15 +20,13 @@
  module bram
     #(
         parameter RAM_ADDR_WIDTH = 13, // 8K x 32 (32KB)
-        parameter RAM_BUS_WIDTH = 32,
-    )
-
-    (
+        parameter RAM_BUS_WIDTH = 32
+    ) (
         input clk,
         input [3:0] we,
         input [RAM_ADDR_WIDTH-1:0] addr,
         input [RAM_BUS_WIDTH-1:0] data,
-        output logic [RAM_BUS_WIDTH-1:0] out,
+        output logic [RAM_BUS_WIDTH-1:0] out
     );
 
     // Raw memory block
@@ -44,11 +42,11 @@
     always_ff @(posedge clk) begin
 
         // Read
-        if (!we)
+        if (we == 0)
             out <= mem[addr];
 
         // Write
-        if (we) begin
+        if (we > 0) begin
             for (i = 0; i < 4; i++) begin
                 if (we[i])
                     mem[addr][8*i +: 8] <= data[8*i +: 8];

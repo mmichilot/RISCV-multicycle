@@ -23,10 +23,8 @@
 module memory 
     #(
         parameter ADDR_WIDTH = 13,
-        parameter BUS_WIDTH = 32,
-    )
-
-    (
+        parameter BUS_WIDTH = 32
+    ) (
         input clk,
         input we,
         input [BUS_WIDTH-1:0] addr,
@@ -58,8 +56,6 @@ module memory
     logic [1:0] byte_sel = addr[1:0];
 
     // RAM Instantiation
-    (* keep=1 *)
-    (* keep_hierarchy=1 *)
     bram #(
         .RAM_ADDR_WIDTH(ADDR_WIDTH),
         .RAM_BUS_WIDTH(BUS_WIDTH)
@@ -115,5 +111,4 @@ module memory
             end
         endcase
     end
-
 endmodule
