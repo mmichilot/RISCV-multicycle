@@ -17,7 +17,6 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
- 
  module bram
     #(
         parameter RAM_ADDR_WIDTH = 13, // 8K x 32 (32KB)
@@ -45,7 +44,8 @@
     always_ff @(posedge clk) begin
 
         // Read
-        out <= mem[addr];
+        if (!we)
+            out <= mem[addr];
 
         // Write
         if (we) begin
