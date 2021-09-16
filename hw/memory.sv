@@ -29,25 +29,20 @@ module memory
         input we,
         input [BUS_WIDTH-1:0] addr,
         input [BUS_WIDTH-1:0] data,
-        output logic [BUS_WIDTH-1:0] out,
-
         input [1:0] size,
         input sign,
+        
+        output logic [BUS_WIDTH-1:0] out,
         output logic error
     );
 
     localparam MAX_ADDR = (2**ADDR_WIDTH)-1;
 
-    enum {
+    enum logic [1:0] {
         BYTE = 2'b00,
         HALF = 2'b01,
         WORD = 2'b10
     } e_size;
-
-    enum {
-        SIGNED = 1'b0,
-        UNSIGNED = 1'b1
-    } e_sign;
 
     // Signals
     logic [ADDR_WIDTH-1:0] s_addr;
@@ -56,15 +51,17 @@ module memory
     logic [1:0] byte_sel = addr[1:0];
 
     // RAM Instantiation
+    (* keep_hierarchy=1 *)
+    (* keep=1 *)
     bram #(
-        .RAM_ADDR_WIDTH(ADDR_WIDTH),
-        .RAM_BUS_WIDTH(BUS_WIDTH)
+        .RAM_ADDR_WIDTH (ADDR_WIDTH),
+        .RAM_BUS_WIDTH  (BUS_WIDTH)
     ) ram (
-        .clk(clk),
-        .we(s_we),
-        .addr(s_addr),
-        .data(data),
-        .out(s_out)
+        .clk    (clk),
+        .we     (s_we),
+        .addr   (s_addr),
+        .data   (data),
+        .out    (s_out)
     );
 
     assign s_addr = {addr[ADDR_WIDTH-1:2], 2'b0};
@@ -85,30 +82,12 @@ module memory
 
         if (we) begin
             case(size)
-                BYTE: s_we[byte_sel] = 1'b1;
-                HALF: s_we[byte_sel +: 2] = 2'b1;
-                WORD: s_we = 4'b1;
+                BYTE:    s_we[byte_sel] = 1'b1;
+                HALF:    s_we[byte_sel +: 2] = 2'b1;
+                WORD:    s_we = 4'b1;
+                default: s_we = 0;
             endcase
         end 
     end
 
-    always_comb begin : splice_output
-        out = s_out;
-
-        case(sign)
-            SIGNED: begin
-                case(size)
-                    BYTE: out = 32'(signed'(s_out[8*byte_sel +: 8]));
-                    HALF: out = 32'(signed'(s_out[8*byte_sel +: 16]));
-                endcase
-            end
-
-            UNSIGNED: begin
-                case (size)
-                    BYTE: out = 32'(s_out[8*byte_sel +: 8]);
-                    HALF: out = 32'(s_out[8*byte_sel +: 16]);
-                endcase
-            end
-        endcase
-    end
 endmodule
