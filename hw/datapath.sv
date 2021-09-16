@@ -37,6 +37,7 @@ module datapath
         input [31:0] data_in,
 
         output logic [31:0] addr,
+        output logic [31:0] inst_out,
         output logic [31:0] data_out
     );
 
@@ -169,5 +170,8 @@ module datapath
         .b     (alu_b),
         .out   (alu_out)
     );
+
+    assign inst_out = inst;
+    assign data_out = alu_out;
     
 endmodule

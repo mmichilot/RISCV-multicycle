@@ -32,7 +32,6 @@ module control_unit(
     output logic memRead,
     output logic [1:0] regSrc,
     output logic regWrite,
-    output logic [2:0] immedSrc,
     output logic [1:0] aluSrcA,
     output logic [1:0] aluSrcB,
     output logic [1:0] aluCtrl
