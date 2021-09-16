@@ -72,6 +72,7 @@ module datapath
     // -- Datapath Layout --
 
     // Program Counter
+    (* keep_hierarchy=1 *)
     prog_cntr pc(
         // Inputs
     	.clk   (clk),
@@ -101,6 +102,7 @@ module datapath
     end
 
     // Size and Extend
+    (* keep_hierarchy=1 *)
     sz_ex sz_ex(
         // Inputs
     	.data     (data_in),
@@ -123,6 +125,7 @@ module datapath
     end
 
     // Register File
+    (* keep_hierarchy=1 *)
     reg_file reg_file(
         // Inputs
     	.clk      (clk),
@@ -138,6 +141,7 @@ module datapath
     );
 
     // Immediate Generator
+    (* keep_hierarchy=1 *)
     immed_gen immed_gen(
         // Inputs
     	.inst     (inst),
@@ -166,6 +170,7 @@ module datapath
     end
 
     // ALU
+    (* keep_hierarchy=1 *)
     alu alu(
     	.aluOp (aluOp ),
         .a     (alu_a),

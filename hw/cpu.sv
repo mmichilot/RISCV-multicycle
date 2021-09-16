@@ -52,6 +52,7 @@ module cpu
         br_lt=0; br_eq=0; br_ltu=0;
     end
 
+    (* keep_hierarchy=1 *)
     control_unit control_unit(
         // Inputs
     	.clk      (clk      ),
@@ -72,6 +73,7 @@ module cpu
         .aluCtrl  (aluCtrl  )
     );
 
+    (* keep_hierarchy=1 *)
     decoder decoder(
         // Inputs
     	.opcode    (inst[6:0]),
@@ -87,6 +89,7 @@ module cpu
         .aluOp     (aluOp     )
     );
 
+    (* keep_hierarchy=1 *)
     datapath datapath(
         // Inputs
     	.clk      (clk      ),
@@ -108,6 +111,7 @@ module cpu
         .data_out (mem_in )
     );
 
+    (* keep_hierarchy=1 *)
     memory mem(
         // Inputs
     	.clk   (clk   ),
