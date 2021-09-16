@@ -1,2 +1,4 @@
 .vscode/c_cpp_properties.json
 /cpu_tb/obj_dir
+/cpu_tb/logs
+/sw/build
