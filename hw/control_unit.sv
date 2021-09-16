@@ -35,7 +35,7 @@ module control_unit(
     output logic [2:0] immedSrc,
     output logic [1:0] aluSrcA,
     output logic [1:0] aluSrcB,
-    output logic [2:0] aluOp
+    output logic [1:0] aluCtrl
     );
 
     enum logic [6:0] {
@@ -51,6 +51,12 @@ module control_unit(
         SYSTEM   = 7'b1110011
     } opcode_e;
 
+    enum logic {PC_OUT,ALU_OUT} addrSrc_e;
+    enum logic [1:0] {PC,ALU,MEM} regSrc_e;
+    enum logic [1:0] {CURR_PC,OLD_PC,RS1,ZERO} aluSrcA_e;
+    enum logic [1:0] {RS2,IMMED,FOUR} aluSrcB_e;
+    enum logic [1:0] {ADD_OP,BRANCH_OP,ALU_OP} aluCtrl_e;
+
     typedef enum logic[2:0] {MEMREAD,FETCH,EXECUTE,WB,HALT} state_e;
     state_e state, next;
 
@@ -62,44 +68,153 @@ module control_unit(
                        
     always_comb begin : output_logic
         pcUpdate = 0;
-        regWrite = 0;
+        irWrite  = 0;
+        addrSrc  = 0;
         memWrite = 0;
         memRead  = 0;
-        irWrite  = 0;
+        regSrc   = 0;
+        regWrite = 0;
+        aluSrcA  = 0;
+        aluSrcB  = 0;
+        aluCtrl  = 0;
 
         case (state)
             MEMREAD: begin
-
+                addrSrc = PC_OUT;
                 memRead = 1;
             end
 
             FETCH: begin
                 irWrite  = 1;
+
+                aluSrcA  = CURR_PC;
+                aluSrcB  = FOUR;
+                aluCtrl  = ADD_OP;
                 pcUpdate = 1;
             end
 
             EXECUTE: begin
-                regWrite = 1;
+                case(opcode)
+                    LUI: begin
+                        aluSrcA = ZERO;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        regSrc   = ALU;
+                        regWrite = 1;
+                    end
+
+                    AUIPC: begin
+                        aluSrcA = OLD_PC;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        regSrc   = ALU;
+                        regWrite = 1;
+                    end
+
+                    JAL: begin
+                        aluSrcA = OLD_PC;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        regSrc   = PC;
+                        regWrite = 1;
+
+                        pcUpdate = 1;
+                    end
+
+                    JALR: begin
+                        aluSrcA = RS1;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        regSrc   = PC;
+                        regWrite = 1;
+
+                        pcUpdate = 1;
+                    end
+
+                    LOAD: begin
+                        aluSrcA = RS1;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        addrSrc = ALU_OUT;
+                        memRead = 1;
+                    end
+
+                    STORE: begin
+                        aluSrcA = RS1;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        regSrc   = ALU;
+                        memWrite = 1;
+                    end
+
+                    OP_IMM: begin
+                        aluSrcA = RS1;
+                        aluSrcB = IMMED;
+                        aluCtrl = ALU_OP;
+
+                        regSrc   = ALU;
+                        regWrite = 1;
+                    end
+
+                    OP: begin
+                        aluSrcA = RS1;
+                        aluSrcB = RS2;
+                        aluCtrl = ALU_OP;
+
+                        regSrc   = ALU;
+                        regWrite = 1;
+                    end
+
+                    default: begin
+                        pcUpdate = 0;
+                        irWrite  = 0;
+                        addrSrc  = 0;
+                        memWrite = 0;
+                        memRead  = 0;
+                        regSrc   = 0;
+                        regWrite = 0;
+                        aluSrcA  = 0;
+                        aluSrcB  = 0;
+                        aluCtrl  = 0;
+                    end
+                endcase
             end
 
             WB: begin
-                memWrite = 1;
+                regSrc   = MEM;
+                regWrite = 1;
             end
 
             HALT: begin
                 pcUpdate = 0;
-                regWrite = 0;
+                irWrite  = 0;
+                addrSrc  = 0;
                 memWrite = 0;
                 memRead  = 0;
-                irWrite  = 0;
+                regSrc   = 0;
+                regWrite = 0;
+                aluSrcA  = 0;
+                aluSrcB  = 0;
+                aluCtrl  = 0;
             end
 
             default: begin
                 pcUpdate = 0;
-                regWrite = 0;
+                irWrite  = 0;
+                addrSrc  = 0;
                 memWrite = 0;
                 memRead  = 0;
-                irWrite  = 0;
+                regSrc   = 0;
+                regWrite = 0;
+                aluSrcA  = 0;
+                aluSrcB  = 0;
+                aluCtrl  = 0;
             end
         endcase
     end
