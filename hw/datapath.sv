@@ -174,6 +174,6 @@ module datapath
     );
 
     assign inst_out = inst;
-    assign data_out = alu_out;
+    assign data_out = rs2_data;
     
 endmodule

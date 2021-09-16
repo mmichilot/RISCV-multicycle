@@ -151,8 +151,8 @@ module control_unit(
                         aluSrcB = IMMED;
                         aluCtrl = ADD_OP;
 
-                        regSrc   = ALU;
-                        memWrite = 1;
+                        addrSrc   = ALU_OUT;
+                        memWrite  = 1;
                     end
 
                     OP_IMM: begin
@@ -189,6 +189,12 @@ module control_unit(
             end
 
             WB: begin
+                aluSrcA = RS1;
+                aluSrcB = IMMED;
+                aluCtrl = ADD_OP;
+
+                addrSrc = ALU_OUT;
+
                 regSrc   = MEM;
                 regWrite = 1;
             end

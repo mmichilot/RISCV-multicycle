@@ -86,8 +86,8 @@ module memory
         if (we) begin
             case(size)
                 BYTE:    s_we[byte_sel] = 1'b1;
-                HALF:    s_we[byte_sel +: 2] = 2'b1;
-                WORD:    s_we = 4'b1;
+                HALF:    s_we[byte_sel +: 2] = 2'b11;
+                WORD:    s_we = 4'b1111;
                 default: s_we = 0;
             endcase
         end 
