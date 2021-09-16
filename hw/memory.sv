@@ -22,7 +22,7 @@
 
 module memory 
     #(
-        parameter ADDR_WIDTH = 13,
+        parameter ADDR_WIDTH = 15,
         parameter BUS_WIDTH = 32
     ) (
         input clk,
@@ -37,6 +37,7 @@ module memory
     );
 
     localparam MAX_ADDR = (2**ADDR_WIDTH)-1;
+    localparam RAM_ADDR_WIDTH = ADDR_WIDTH-2;
 
     /* verilator lint_off UNUSED */
     enum logic [1:0] {
@@ -47,7 +48,7 @@ module memory
     /* verilator lint_on UNUSED */
 
     // Signals
-    logic [ADDR_WIDTH-1:0] s_addr;
+    logic [RAM_ADDR_WIDTH-1:0] s_addr;
     logic [3:0] s_we;
     logic [1:0] byte_sel = addr[1:0];
 
@@ -55,7 +56,7 @@ module memory
     (* keep_hierarchy=1 *)
     (* keep=1 *)
     bram #(
-        .RAM_ADDR_WIDTH (ADDR_WIDTH),
+        .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
         .RAM_BUS_WIDTH  (BUS_WIDTH)
     ) ram (
         .clk    (clk),
@@ -66,7 +67,7 @@ module memory
         .out    (out)
     );
 
-    assign s_addr = {addr[ADDR_WIDTH-1:2], 2'b0};
+    assign s_addr = addr[ADDR_WIDTH-1:2];
 
     always_comb begin : addr_check
         error = 0;

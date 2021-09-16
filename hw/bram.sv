@@ -44,7 +44,7 @@
     always_ff @(posedge clk) begin
 
         // Read
-        if (rd == 0)
+        if (rd)
             out <= mem[addr];
 
         // Write
