@@ -22,7 +22,7 @@
 module cpu
     (
         input clk,
-        input logic rst
+        input rst
     ); 
 
     // -- Signals --
