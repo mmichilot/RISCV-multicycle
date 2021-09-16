@@ -22,7 +22,7 @@
 
 module prog_cntr(
     input clk,
-    input rstn,
+    input rst,
     input ld,
     input logic [31:0] data,
     output logic [31:0] count
@@ -30,7 +30,7 @@ module prog_cntr(
     
     always_ff @(posedge clk)
     begin
-        if (!rstn)
+        if (rst)
             count <=  0;
         else if (ld)
             count <= data;
