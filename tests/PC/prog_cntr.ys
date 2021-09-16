@@ -1,2 +1,0 @@
-read_verilog -sv prog_cntr.sv
-write_cxxrtl prog_cntr.cpp

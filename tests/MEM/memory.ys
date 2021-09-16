@@ -1,2 +1,0 @@
-read_verilog -sv memory.sv
-write_cxxrtl memory.cpp

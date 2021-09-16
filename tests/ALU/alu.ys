@@ -1,2 +1,0 @@
-read_verilog -sv alu.sv
-write_cxxrtl alu.cpp

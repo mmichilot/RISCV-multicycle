@@ -26,10 +26,16 @@ module control_unit(
     input error,
 
     output logic pcUpdate,
-    output logic regWrite,    
+    output logic irWrite,
+    output logic addrSrc,
     output logic memWrite,
     output logic memRead,
-    output logic irWrite
+    output logic [1:0] regSrc,
+    output logic regWrite,
+    output logic [2:0] immedSrc,
+    output logic [1:0] aluSrcA,
+    output logic [1:0] aluSrcB,
+    output logic [2:0] aluOp
     );
 
     enum logic [6:0] {
@@ -63,6 +69,7 @@ module control_unit(
 
         case (state)
             MEMREAD: begin
+
                 memRead = 1;
             end
 
