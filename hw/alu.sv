@@ -25,6 +25,7 @@ module alu(
     output logic [31:0] out
     );
     
+    /* verilator lint_off UNUSED */
     enum logic [3:0] {
         ADD,
         SUB,
@@ -37,6 +38,7 @@ module alu(
         OR,
         AND
     } aluOp_e;
+    /* verilator lint_on UNUSED */
     
     always_comb begin
         case(aluOp)

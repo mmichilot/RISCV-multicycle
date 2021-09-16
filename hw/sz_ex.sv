@@ -29,16 +29,18 @@ module sz_ex (
     output logic [31:0] out
 );
 
+    /* verilator lint_off UNUSED */
     enum logic {
         SIGNED = 1'b0,
         UNSIGNED = 1'b1
-    } e_sign;
+    } sign_e;
 
     enum logic [1:0] {
         BYTE = 2'b00,
         HALF = 2'b01,
         WORD = 2'b10
-    } e_size;
+    } size_e;
+    /* verilator lint_on UNUSED */
 
     always_comb begin
         out = data;

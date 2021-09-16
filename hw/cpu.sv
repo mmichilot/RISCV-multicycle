@@ -36,7 +36,9 @@ module cpu
     logic [3:0] aluOp;
 
     // Datapath
+    /* verilator lint_off UNUSED */
     logic [31:0] addr, inst;
+    /* verilator lint_on UNUSED */
 
     // Memory
     logic mem_error;
@@ -114,7 +116,6 @@ module cpu
         .addr  (addr  ),
         .data  (mem_in  ),
         .size  (inst[13:12]  ),
-        .sign  (inst[14]  ),
 
         // Outputs
         .out   (mem_out   ),

@@ -37,6 +37,7 @@ module control_unit(
     output logic [1:0] aluCtrl
     );
 
+    /* verilator lint_off UNUSED */
     enum logic [6:0] {
         LUI      = 7'b0110111,
         AUIPC    = 7'b0010111,
@@ -55,6 +56,8 @@ module control_unit(
     enum logic [1:0] {CURR_PC,OLD_PC,RS1,ZERO} aluSrcA_e;
     enum logic [1:0] {RS2,IMMED,FOUR} aluSrcB_e;
     enum logic [1:0] {ADD_OP,BRANCH_OP,ALU_OP} aluCtrl_e;
+    
+    /* verilator lint_on UNUSED */
 
     typedef enum logic[2:0] {MEMREAD,FETCH,EXECUTE,WB,HALT} state_e;
     state_e state, next;

@@ -22,18 +22,23 @@
 module decoder(
     input [6:0] opcode,
     input [2:0] func3,
+    /* verilator lint_off UNUSED */
     input [6:0] func7,
+    /* verilator lint_on UNUSED */
     input [1:0] aluCtrl,
 
-    // Legacy
+    // Legacy (Unused)
+    /* verilator lint_off UNUSED */
     input CU_BR_EQ,
     input CU_BR_LT,
     input CU_BR_LTU,
+    /* verilator lint_on UNUSED */
 
     output logic [2:0] immedSrc,
     output logic [3:0] aluOp
     );
 
+    /* verilator lint_off UNUSED */
     enum logic [6:0] {
         LUI      = 7'b0110111,
         AUIPC    = 7'b0010111,
@@ -74,6 +79,7 @@ module decoder(
         AND
     } aluOp_e;
 
+    /* verilator lint_on UNUSED */
 
     always_comb begin : immedSrc_logic
         case(opcode)

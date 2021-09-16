@@ -59,10 +59,12 @@ module datapath
     logic [31:0] alu_a, alu_b, alu_out;
 
     // -- MUX Select Signal Enums
+    /* verilator lint_off UNUSED */
     enum logic {PC_OUT,ALU_OUT} addrSrc_e;
     enum logic [1:0] {PC,ALU,MEM} regSrc_e;
     enum logic [1:0] {CURR_PC,OLD_PC,RS1,ZERO} aluSrcA_e;
     enum logic [1:0] {RS2,IMMED,FOUR} aluSrcB_e;
+    /* verilator lint_on UNUSED */
 
     // -- Non-architectural registers --
     logic [31:0] inst, old_pc;

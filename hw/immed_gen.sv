@@ -21,13 +21,17 @@
 
 module immed_gen 
     (
+        /* verilator lint_off UNUSED */
         input [31:0] inst,
+        /* verilator lint_on UNUSED */
         input [2:0] immedSrc,
 
         output logic [31:0] immed
     );
 
+    /* verilator lint_off UNUSED */
     enum logic [2:0] {I_IMMED,S_IMMED,B_IMMED,U_IMMED,J_IMMED} immedSrc_e;
+    /* verilator lint_on UNUSED */
 
     always_comb begin
         case(immedSrc)

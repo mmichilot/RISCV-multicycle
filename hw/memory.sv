@@ -31,7 +31,6 @@ module memory
         input [BUS_WIDTH-1:0] addr,
         input [BUS_WIDTH-1:0] data,
         input [1:0] size,
-        input sign,
         
         output logic [BUS_WIDTH-1:0] out,
         output logic error
@@ -39,16 +38,17 @@ module memory
 
     localparam MAX_ADDR = (2**ADDR_WIDTH)-1;
 
+    /* verilator lint_off UNUSED */
     enum logic [1:0] {
         BYTE = 2'b00,
         HALF = 2'b01,
         WORD = 2'b10
-    } e_size;
+    } size_e;
+    /* verilator lint_on UNUSED */
 
     // Signals
     logic [ADDR_WIDTH-1:0] s_addr;
     logic [3:0] s_we;
-    logic [BUS_WIDTH-1:0] s_out;
     logic [1:0] byte_sel = addr[1:0];
 
     // RAM Instantiation
@@ -63,7 +63,7 @@ module memory
         .we     (s_we),
         .addr   (s_addr),
         .data   (data),
-        .out    (s_out)
+        .out    (out)
     );
 
     assign s_addr = {addr[ADDR_WIDTH-1:2], 2'b0};
