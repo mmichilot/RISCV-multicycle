@@ -2,3 +2,4 @@
 /cpu_tb/obj_dir
 /cpu_tb/logs
 /sw/build
+cpu_tb/mem.txt
