@@ -23,6 +23,7 @@
         parameter RAM_BUS_WIDTH = 32
     ) (
         input clk,
+        input rd,
         input [3:0] we,
         input [RAM_ADDR_WIDTH-1:0] addr,
         input [RAM_BUS_WIDTH-1:0] data,
@@ -35,14 +36,14 @@
     
     // Initialize memory
     initial begin
-        $readmemh("mem.txt", mem, 0, 2**RAM_ADDR_WIDTH-1);
+        $readmemh("../sw/build/mem.txt", mem, 0, 2**RAM_ADDR_WIDTH-1);
     end 
 
     integer i;
     always_ff @(posedge clk) begin
 
         // Read
-        if (we == 0)
+        if (rd == 0)
             out <= mem[addr];
 
         // Write

@@ -26,6 +26,7 @@ module memory
         parameter BUS_WIDTH = 32
     ) (
         input clk,
+        input rd,
         input we,
         input [BUS_WIDTH-1:0] addr,
         input [BUS_WIDTH-1:0] data,
@@ -58,6 +59,7 @@ module memory
         .RAM_BUS_WIDTH  (BUS_WIDTH)
     ) ram (
         .clk    (clk),
+        .rd     (rd),
         .we     (s_we),
         .addr   (s_addr),
         .data   (data),

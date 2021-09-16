@@ -106,9 +106,10 @@ module cpu
         .data_out (mem_in )
     );
 
-    memory u_memory(
+    memory mem(
         // Inputs
     	.clk   (clk   ),
+        .rd    (memRead),
         .we    (memWrite    ),
         .addr  (addr  ),
         .data  (mem_in  ),
