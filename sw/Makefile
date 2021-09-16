@@ -78,7 +78,7 @@ $(BUILD)/mem.bin: $(BUILD)/$(PROJECT).elf
 
 # convert to an ASCII hex file for OTTER memory
 $(BUILD)/mem.txt: $(BUILD)/mem.bin
-	hexdump -v -e '/4 "%08x\n"' $< > $@
+	hexdump -v -e '1/4 "%08x\n"' $< > $@
 
 # make software project folder
 dirs:
