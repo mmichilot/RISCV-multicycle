@@ -20,26 +20,37 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module alu(
-        input [3:0] op,  //func7[5],func3
-        input [31:0] a,b,
-        output logic [31:0] out
-        );
-       
-        always_comb
-        begin //reevaluate If these change
-            case(op)
-                0:  out = a + b;     //add
-                8:  out = a - b;     //sub
-                6:  out = a | b;     //or
-                7:  out = a & b;     //and
-                4:  out = a ^ b;     //xor
-                5:  out =  a >> b[4:0];    //srl
-                1:  out =  a << b[4:0];    //sll
-               13:  out =  $signed(a) >>> b[4:0];    //sra
-                2:  out = $signed(a) < $signed(b) ? 1: 0;       //slt
-                3:  out = a < b ? 1: 0;      //sltu
-                9:  out = a; //copy op1 (lui)
-                default: out = 0; 
-            endcase
-        end
-    endmodule
+    input [3:0] aluOp,
+    input [31:0] a,b,
+    output logic [31:0] out
+    );
+    
+    enum logic [3:0] {
+        ADD,
+        SUB,
+        SLL,
+        SLT,
+        SLTU,
+        XOR,
+        SRL,
+        SRA,
+        OR,
+        AND
+    } aluOp_e;
+    
+    always_comb begin
+        case(aluOp)
+            ADD:  out = a + b;
+            SUB:  out = a - b;
+            SLL:  out = a << b;
+            SLT:  out = signed'(a) < signed'(b) ? 1 : 0;
+            SLTU: out = a < b ? 1 : 0;
+            XOR:  out = a ^ b;
+            SRL:  out = a >> b;
+            SRA:  out = a >>> b;
+            OR:   out = a | b;
+            AND:  out = a & b;
+            default: out = 0;
+        endcase
+    end
+endmodule
