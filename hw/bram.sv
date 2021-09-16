@@ -37,7 +37,7 @@
     
     // Initialize memory
     initial begin
-        $readmemh("../sw/build/mem.txt", mem, 0, 2**RAM_ADDR_WIDTH-1);
+        $readmemh("../sw/build/mem.txt", mem, 0);
     end 
 
     integer i;
