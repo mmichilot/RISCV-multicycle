@@ -25,7 +25,7 @@ module decoder(
     /* verilator lint_off UNUSED */
     input [6:0] func7,
     /* verilator lint_on UNUSED */
-    input [1:0] aluCtrl,
+    input aluCtrl,
 
     // Legacy (Unused)
     /* verilator lint_off UNUSED */
@@ -64,7 +64,7 @@ module decoder(
     } func3_e;
 
     enum logic [2:0] {I_IMMED,S_IMMED,B_IMMED,U_IMMED,J_IMMED} immedSrc_e;
-    enum logic [1:0] {ADD_OP,BRANCH_OP,ALU_OP} aluCtrl_e;
+    enum logic {ADD_OP,ALU_OP} aluCtrl_e;
 
     enum logic [3:0] {
         ADD,
@@ -95,8 +95,7 @@ module decoder(
 
     always_comb begin : aluOp_logic
         case(aluCtrl)
-            ADD_OP:    aluOp = ADD;
-            BRANCH_OP: aluOp = SUB;
+            ADD_OP: aluOp = ADD;
             ALU_OP: begin
                 case(func3)
                     ADD_FUNC:  aluOp = ({opcode[5],func7[5]} == 2'b11) ? SUB : ADD;

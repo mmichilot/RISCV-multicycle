@@ -34,7 +34,7 @@ module control_unit(
     output logic regWrite,
     output logic [1:0] aluSrcA,
     output logic [1:0] aluSrcB,
-    output logic [1:0] aluCtrl
+    output logic aluCtrl
     );
 
     /* verilator lint_off UNUSED */
@@ -55,7 +55,7 @@ module control_unit(
     enum logic [1:0] {PC,ALU,MEM} regSrc_e;
     enum logic [1:0] {CURR_PC,OLD_PC,RS1,ZERO} aluSrcA_e;
     enum logic [1:0] {RS2,IMMED,FOUR} aluSrcB_e;
-    enum logic [1:0] {ADD_OP,BRANCH_OP,ALU_OP} aluCtrl_e;
+    enum logic {ADD_OP,ALU_OP} aluCtrl_e;
     
     /* verilator lint_on UNUSED */
 

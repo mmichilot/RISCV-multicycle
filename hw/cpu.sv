@@ -28,8 +28,8 @@ module cpu
     // -- Signals --
     
     // Control Unit
-    logic pcUpdate, irWrite, addrSrc, memWrite, memRead, regWrite;
-    logic [1:0] regSrc, aluSrcA, aluSrcB, aluCtrl;
+    logic pcUpdate, irWrite, addrSrc, memWrite, memRead, regWrite, aluCtrl;
+    logic [1:0] regSrc, aluSrcA, aluSrcB;
 
     // Decoder
     logic [2:0] immedSrc;
