@@ -1,7 +1,7 @@
 `ifndef MEMORY_SVH
 `define MEMORY_SVH
 
-`include "memory.sv"
+`include "sram.sv"
 `include "bram.sv"
 
 `endif

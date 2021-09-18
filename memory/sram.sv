@@ -1,16 +1,17 @@
 `timescale 1ns / 1ps
+`default_nettype none
 `include "buses.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: J. Callenes, M. Michilot
 // 
 // Create Date: 01/27/2019 08:37:11 AM
-// Design Name: OTTER Basic Memory
-// Module Name: memory
+// Design Name: SRAM memory module
+// Module Name: sram
 // Project Name: OTTER CPU
 // Target Devices: N/A
 // Tool Versions: 
-// Description: Basic memory module for the OTTER CPU
+// Description: SRAM used for memory
 // 
 // Dependencies: bram - Used to initialize and infer
 //                      single-port block RAM w/ Byte Enable.
@@ -21,7 +22,7 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module memory 
+module sram
     #(
         parameter ADDR_WIDTH = 15,
         parameter BUS_WIDTH = 32
