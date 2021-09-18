@@ -25,16 +25,18 @@ module cpu
         input rst,
         input error,
 
-        output logic [31:0] addr,
-        
-        output logic [31:0] data_out,
-        input logic [31:0] data_in
+        // Data bus (Both instruction and data)
+        output logic busWrite,
+        output logic busRead,
+        output logic [31:0] bus_addr,
+        output logic [31:0] bus_in,
+        input logic [31:0] bus_out
     ); 
 
     // -- Signals --
     
     // Control Unit
-    logic pcUpdate, irWrite, addrSrc, memWrite, memRead, regWrite, aluCtrl, enBranch;
+    logic pcUpdate, irWrite, addrSrc, regWrite, aluCtrl, enBranch;
     logic [1:0] regSrc, aluSrcA, aluSrcB;
 
     // Decoder
@@ -60,8 +62,8 @@ module cpu
         .pcUpdate (pcUpdate ),
         .irWrite  (irWrite  ),
         .addrSrc  (addrSrc  ),
-        .memWrite (memWrite ),
-        .memRead  (memRead  ),
+        .memWrite (busWrite ),
+        .memRead  (busRead  ),
         .regSrc   (regSrc   ),
         .regWrite (regWrite ),
         .aluSrcA  (aluSrcA  ),
@@ -87,7 +89,7 @@ module cpu
         // Inputs
     	.clk      (clk      ),
         .rst      (rst      ),
-        .data_in  (data_in ),
+        .data_in  (bus_out),
         .enBranch (enBranch ),
         .pcUpdate (pcUpdate ),
         .irWrite  (irWrite  ),
@@ -100,9 +102,9 @@ module cpu
         .aluOp    (aluOp    ),
 
         // Outputs
-        .addr     (addr     ),
         .inst_out (inst ),
-        .data_out (data_out)
+        .addr     (bus_addr     ),
+        .data_out (bus_in)
     );
 
 endmodule
