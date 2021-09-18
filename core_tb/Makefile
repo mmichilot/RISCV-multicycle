@@ -2,6 +2,9 @@
 
 VERILATOR = verilator
 
+# Enable SystemVerilog parsing
+VERILATOR_FLAGS += -sv
+
 # Generate makefile dependencies
 VERILATOR_FLAGS += -MMD
 
@@ -21,7 +24,8 @@ VERILATOR_INPUT = -f input.vc top.sv testbench.cpp
 
 # Directories
 SW_DIR = ../sw
-HW_DIR = ../core
+INCLUDE_DIRS = ../bus ../core ../memory
+INCLUDE_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 
 default: run
 
@@ -39,7 +43,7 @@ run:
 
 	@echo
 	@echo "-- Verilating --"
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
+	$(VERILATOR) $(INCLUDE_FLAGS) $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
 
 	@echo
 	@echo "-- Building --"

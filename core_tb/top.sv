@@ -1,5 +1,7 @@
-`include "../core/core"
-`include "../memory/memory"
+`timescale 1ns / 1ps
+`include "memory.svh"
+`include "core.svh"
+`include "sys_bus.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: M. Michilot
@@ -26,27 +28,36 @@ module top
         input rst
     );
 
-    logic error;
-    logic busWrite;
-    logic busRead;
-    logic [1:0] data_size;
-    logic [31:0] bus_addr;
-    logic [31:0] bus_in;
-    logic [31:0] bus_out;
+    sys_bus bus(clk);
 
-    core core(.*);
+// Buses are treated as a port for verilator
+`ifdef VERILATOR
 
-    memory mem(
-    	.clk                 ,
-        .rd    (busRead     ),
-        .we    (busWrite    ),
-        .addr  (bus_addr    ),
-        .data  (bus_in     ),
-        .size  (data_size   ),
-        .out   (bus_out      ),
-        .error (error       )
+    core core(
+        .rst    (rst), 
+        .bus    (bus.primary)
     );
+
+    memory memory(
+        .bus    (bus.secondary)
+    );
+
+`else
+
+    (* keep=1 *)
+    (* keep_hierarchy=1 *)
+    core core(bus.primary);
+    assign core.rst = rst;
+
+    (* keep=1 *)
+    (* keep_hierarchy=1 *)
+    memory memory(bus.secondary);
     
+`endif
+
+
+// Tracing for verilator
+`ifdef VERILATOR
     // Set up tracing
     initial begin
        if($test$plusargs("trace") != 0) begin
@@ -56,5 +67,6 @@ module top
        end
        $display("[%0t] Module running...\n", $time);
     end
+`endif
 
 endmodule
