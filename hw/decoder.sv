@@ -27,13 +27,6 @@ module decoder(
     /* verilator lint_on UNUSED */
     input aluCtrl,
 
-    // Legacy (Unused)
-    /* verilator lint_off UNUSED */
-    input CU_BR_EQ,
-    input CU_BR_LT,
-    input CU_BR_LTU,
-    /* verilator lint_on UNUSED */
-
     output logic [2:0] immedSrc,
     output logic [3:0] aluOp
     );
