@@ -1,6 +1,5 @@
-interface sys_bus #(parameter  WIDTH = 32) (
-        input clk,
-        input rst
+interface otter_bus #(parameter  WIDTH = 32) (
+        input clk
     );
     logic error;
     logic wr;
@@ -10,12 +9,7 @@ interface sys_bus #(parameter  WIDTH = 32) (
     logic [WIDTH-1:0] rdata;
     logic [WIDTH-1:0] wdata;
 
-    modport core(
-        input error, rdata, clk, rst,
-        output wr, rd, size, addr, wdata
-    );
-
-    modport primary (
+    modport primary(
         input error, rdata, clk,
         output wr, rd, size, addr, wdata
     );
