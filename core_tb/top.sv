@@ -30,6 +30,11 @@ module top
 
     otter_bus sysBus(clk);
 
+    // Note: yosys throws warnings about interface signals being implicitly
+    //       declared.
+    //       Issue is currenly OPEN on Yosys GitHub
+    //       https://github.com/YosysHQ/yosys/issues/1053
+    
     (* keep=1 *)
     (* keep_hierarchy=1 *)
     core core(
@@ -40,7 +45,7 @@ module top
 
     (* keep=1 *)
     (* keep_hierarchy=1 *)
-    memory memory(
+    sram sram(
         .bus(sysBus)
     );
     
