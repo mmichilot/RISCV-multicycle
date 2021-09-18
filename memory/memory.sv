@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "sys_bus.svh"
+`include "buses.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: J. Callenes, M. Michilot
@@ -26,7 +26,7 @@ module memory
         parameter ADDR_WIDTH = 15,
         parameter BUS_WIDTH = 32
     ) (
-        sys_bus bus
+        otter_bus.secondary bus
     );
 
     localparam MAX_ADDR = (2**ADDR_WIDTH)-1;

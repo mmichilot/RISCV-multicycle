@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "memory.svh"
 `include "core.svh"
-`include "sys_bus.svh"
+`include "buses.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: M. Michilot
@@ -28,16 +28,21 @@ module top
         input rst
     );
 
-    sys_bus bus(clk,rst);
+    otter_bus sysBus(clk);
 
     (* keep=1 *)
     (* keep_hierarchy=1 *)
-    core core(bus.core);
+    core core(
+        .rst(rst),
+        .bus(sysBus)
+    );
 
 
     (* keep=1 *)
     (* keep_hierarchy=1 *)
-    memory memory(bus.secondary);
+    memory memory(
+        .bus(sysBus)
+    );
     
 
 
