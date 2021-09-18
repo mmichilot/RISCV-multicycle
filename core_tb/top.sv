@@ -28,32 +28,17 @@ module top
         input rst
     );
 
-    sys_bus bus(clk);
-
-// Buses are treated as a port for verilator
-`ifdef VERILATOR
-
-    core core(
-        .rst    (rst), 
-        .bus    (bus.primary)
-    );
-
-    memory memory(
-        .bus    (bus.secondary)
-    );
-
-`else
+    sys_bus bus(clk,rst);
 
     (* keep=1 *)
     (* keep_hierarchy=1 *)
-    core core(bus.primary);
-    assign core.rst = rst;
+    core core(bus.core);
+
 
     (* keep=1 *)
     (* keep_hierarchy=1 *)
     memory memory(bus.secondary);
     
-`endif
 
 
 // Tracing for verilator

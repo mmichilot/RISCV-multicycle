@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "../bus/sys_bus.svh"
+`include "sys_bus.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:  M. Michilot
@@ -21,7 +21,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module core(
-    input rst,
     sys_bus bus
     );
 
@@ -48,7 +47,7 @@ module core(
     control_unit control_unit(
         // Inputs
     	.clk      (bus.clk),
-        .rst      (rst),
+        .rst      (bus.rst),
         .opcode   (inst[6:0]),
         .error    (bus.error),
 
@@ -83,7 +82,7 @@ module core(
     datapath datapath(
         // Inputs
     	.clk      (bus.clk),
-        .rst      (rst),
+        .rst      (bus.rst),
         .data_in  (bus.rdata),
         .enBranch (enBranch),
         .pcUpdate (pcUpdate),
@@ -97,7 +96,7 @@ module core(
         .aluOp    (aluOp),
 
         // Outputs
-        .inst_out (inst ),
+        .inst_out (inst),
         .addr     (bus.addr),
         .data_out (bus.wdata)
     );

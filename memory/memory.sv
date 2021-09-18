@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "../bus/sys_bus.svh"
+`include "sys_bus.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: J. Callenes, M. Michilot
