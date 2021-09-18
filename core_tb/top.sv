@@ -1,4 +1,5 @@
-`include "../hw/cpu"
+`include "../core/core"
+`include "../memory/memory"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: M. Michilot
@@ -25,11 +26,27 @@ module top
         input rst
     );
 
-    cpu cpu(
-        .clk (clk ),
-        .rst (rst )
-    );
+    logic error;
+    logic busWrite;
+    logic busRead;
+    logic [1:0] data_size;
+    logic [31:0] bus_addr;
+    logic [31:0] bus_in;
+    logic [31:0] bus_out;
 
+    core core(.*);
+
+    memory mem(
+    	.clk                 ,
+        .rd    (busRead     ),
+        .we    (busWrite    ),
+        .addr  (bus_addr    ),
+        .data  (bus_in     ),
+        .size  (data_size   ),
+        .out   (bus_out      ),
+        .error (error       )
+    );
+    
     // Set up tracing
     initial begin
        if($test$plusargs("trace") != 0) begin

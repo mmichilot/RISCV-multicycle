@@ -21,7 +21,7 @@ VERILATOR_INPUT = -f input.vc top.sv testbench.cpp
 
 # Directories
 SW_DIR = ../sw
-HW_DIR = ../hw
+HW_DIR = ../core
 
 default: run
 

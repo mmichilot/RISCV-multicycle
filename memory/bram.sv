@@ -46,7 +46,7 @@
         // Read
         if (rd)
             out <= mem[addr];
-
+      
         // Write
         if (we > 0) begin
             for (i = 0; i < 4; i++) begin

@@ -73,6 +73,9 @@ module datapath
 
     // -- Non-architectural registers --
     logic [31:0] inst, old_pc;
+
+    assign inst_out = inst; // Pass instruction to control unit
+    assign data_out = rs2_data; // Pass data to bus
     
     // -- Datapath Layout --
     brn_gen brn_gen(
@@ -190,8 +193,5 @@ module datapath
         .b     (alu_b),
         .out   (alu_out)
     );
-
-    assign inst_out = inst;
-    assign data_out = rs2_data;
     
 endmodule

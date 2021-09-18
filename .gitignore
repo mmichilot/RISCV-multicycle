@@ -1,5 +1,5 @@
 .vscode
-/cpu_tb/obj_dir
-/cpu_tb/logs
+/core_tb/obj_dir
+/core_tb/logs
+/core_tb/mem.txt
 /sw/build
-cpu_tb/mem.txt

@@ -4,12 +4,12 @@
 // Engineer:  J. Callenes
 // 
 // Create Date: 01/04/2019 04:32:12 PM
-// Design Name: 
-// Module Name: OTTER_CPU
-// Project Name: 
+// Design Name: OTTER Core
+// Module Name: core
+// Project Name: OTTER CPU
 // Target Devices: 
 // Tool Versions: 
-// Description: 
+// Description: Contains the core of OTTER CPU that handles code execution
 // 
 // Dependencies: 
 // 
@@ -19,15 +19,16 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module cpu
+module core
     (
         input clk,
         input rst,
         input error,
 
-        // Data bus (Both instruction and data)
+        // Bus Interface
         output logic busWrite,
         output logic busRead,
+        output logic [1:0] data_size,
         output logic [31:0] bus_addr,
         output logic [31:0] bus_in,
         input logic [31:0] bus_out
@@ -48,27 +49,29 @@ module cpu
     logic [31:0] inst;
     /* verilator lint_on UNUSED */
 
+    assign data_size = inst[13:12]; // Size of data to be written to bus
+
 
     (* keep_hierarchy=1 *)
     control_unit control_unit(
         // Inputs
-    	.clk      (clk      ),
-        .rst      (rst      ),
+    	.clk      (clk),
+        .rst      (rst),
         .opcode   (inst[6:0]),
         .error    (error),
 
         // Outputs
-        .enBranch (enBranch ),
-        .pcUpdate (pcUpdate ),
-        .irWrite  (irWrite  ),
-        .addrSrc  (addrSrc  ),
-        .memWrite (busWrite ),
-        .memRead  (busRead  ),
-        .regSrc   (regSrc   ),
-        .regWrite (regWrite ),
-        .aluSrcA  (aluSrcA  ),
-        .aluSrcB  (aluSrcB  ),
-        .aluCtrl  (aluCtrl  )
+        .enBranch (enBranch),
+        .pcUpdate (pcUpdate),
+        .irWrite  (irWrite),
+        .addrSrc  (addrSrc),
+        .memWrite (busWrite),
+        .memRead  (busRead),
+        .regSrc   (regSrc),
+        .regWrite (regWrite),
+        .aluSrcA  (aluSrcA),
+        .aluSrcB  (aluSrcB),
+        .aluCtrl  (aluCtrl)
     );
 
     (* keep_hierarchy=1 *)
@@ -77,33 +80,33 @@ module cpu
     	.opcode    (inst[6:0]),
         .func3     (inst[14:12]),
         .func7     (inst[31:25]),
-        .aluCtrl   (aluCtrl   ),
+        .aluCtrl   (aluCtrl),
 
         // Outputs
-        .immedSrc  (immedSrc  ),
-        .aluOp     (aluOp     )
+        .immedSrc  (immedSrc),
+        .aluOp     (aluOp)
     );
 
     (* keep_hierarchy=1 *)
     datapath datapath(
         // Inputs
-    	.clk      (clk      ),
-        .rst      (rst      ),
+    	.clk      (clk),
+        .rst      (rst),
         .data_in  (bus_out),
-        .enBranch (enBranch ),
-        .pcUpdate (pcUpdate ),
-        .irWrite  (irWrite  ),
-        .addrSrc  (addrSrc  ),
-        .regSrc   (regSrc   ),
-        .regWrite (regWrite ),
-        .immedSrc (immedSrc ),
-        .aluSrcA  (aluSrcA  ),
-        .aluSrcB  (aluSrcB  ),
-        .aluOp    (aluOp    ),
+        .enBranch (enBranch),
+        .pcUpdate (pcUpdate),
+        .irWrite  (irWrite),
+        .addrSrc  (addrSrc),
+        .regSrc   (regSrc),
+        .regWrite (regWrite),
+        .immedSrc (immedSrc),
+        .aluSrcA  (aluSrcA),
+        .aluSrcB  (aluSrcB),
+        .aluOp    (aluOp),
 
         // Outputs
         .inst_out (inst ),
-        .addr     (bus_addr     ),
+        .addr     (bus_addr),
         .data_out (bus_in)
     );
 
