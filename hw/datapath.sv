@@ -24,6 +24,7 @@ module datapath
         input clk,
         input rst,
 
+        input enBranch,
         input pcUpdate,
         input irWrite,
         input addrSrc,
@@ -43,7 +44,11 @@ module datapath
 
     // -- Signals --
 
+    // Branch Generator
+    logic takeBranch;
+
     // Program Counter
+    logic pc_ld;
     logic [31:0] pc_out;
 
     // Size + Extend
@@ -70,6 +75,14 @@ module datapath
     logic [31:0] inst, old_pc;
     
     // -- Datapath Layout --
+    brn_gen brn_gen(
+    	.rs1        (rs1_data),
+        .rs2        (rs2_data),
+        .func3      (inst[14:12]),
+        .takeBranch (takeBranch)
+    );
+    
+    assign pc_ld = pcUpdate | (enBranch && takeBranch); 
 
     // Program Counter
     (* keep_hierarchy=1 *)
@@ -77,7 +90,7 @@ module datapath
         // Inputs
     	.clk   (clk),
         .rst   (rst),
-        .ld    (pcUpdate),
+        .ld    (pc_ld),
         .data  (alu_out),
 
         // Outputs

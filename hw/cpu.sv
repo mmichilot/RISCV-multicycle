@@ -28,7 +28,7 @@ module cpu
     // -- Signals --
     
     // Control Unit
-    logic pcUpdate, irWrite, addrSrc, memWrite, memRead, regWrite, aluCtrl;
+    logic pcUpdate, irWrite, addrSrc, memWrite, memRead, regWrite, aluCtrl, enBranch;
     logic [1:0] regSrc, aluSrcA, aluSrcB;
 
     // Decoder
@@ -61,6 +61,7 @@ module cpu
         .error    (mem_error),
 
         // Outputs
+        .enBranch (enBranch ),
         .pcUpdate (pcUpdate ),
         .irWrite  (irWrite  ),
         .addrSrc  (addrSrc  ),
@@ -95,6 +96,7 @@ module cpu
     	.clk      (clk      ),
         .rst      (rst      ),
         .data_in  (mem_out  ),
+        .enBranch (enBranch ),
         .pcUpdate (pcUpdate ),
         .irWrite  (irWrite  ),
         .addrSrc  (addrSrc  ),

@@ -25,6 +25,7 @@ module control_unit(
     input [6:0] opcode,
     input error,
 
+    output logic enBranch,
     output logic pcUpdate,
     output logic irWrite,
     output logic addrSrc,
@@ -69,6 +70,7 @@ module control_unit(
     end 
                        
     always_comb begin : output_logic
+        enBranch = 0;
         pcUpdate = 0;
         irWrite  = 0;
         addrSrc  = 0;
@@ -137,6 +139,14 @@ module control_unit(
                         pcUpdate = 1;
                     end
 
+                    BRANCH: begin
+                        aluSrcA = OLD_PC;
+                        aluSrcB = IMMED;
+                        aluCtrl = ADD_OP;
+
+                        enBranch = 1;
+                    end
+
                     LOAD: begin
                         aluSrcA = RS1;
                         aluSrcB = IMMED;
@@ -174,6 +184,7 @@ module control_unit(
                     end
 
                     default: begin
+                        enBranch = 0;
                         pcUpdate = 0;
                         irWrite  = 0;
                         addrSrc  = 0;
@@ -200,6 +211,7 @@ module control_unit(
             end
 
             HALT: begin
+                enBranch = 0;
                 pcUpdate = 0;
                 irWrite  = 0;
                 addrSrc  = 0;
@@ -213,6 +225,7 @@ module control_unit(
             end
 
             default: begin
+                enBranch = 0;
                 pcUpdate = 0;
                 irWrite  = 0;
                 addrSrc  = 0;

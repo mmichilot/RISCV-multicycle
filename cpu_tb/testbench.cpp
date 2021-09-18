@@ -42,7 +42,7 @@ int main(int argc, char** argv, char** env) {
     top->rst = 0;
 
     // Simulate for a certain time
-    while (contextp->time() < 100) {
+    while (contextp->time() < 200) {
         contextp->timeInc(1); // 1 timeprecision period passes
 
         // Toggle a fast (time/2 period) clock
