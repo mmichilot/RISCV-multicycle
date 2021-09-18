@@ -1,7 +1,8 @@
 `timescale 1ns / 1ps
+`include "../bus/sys_bus.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer:  J. Callenes
+// Engineer:  M. Michilot
 // 
 // Create Date: 01/04/2019 04:32:12 PM
 // Design Name: OTTER Core
@@ -19,20 +20,10 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module core
-    (
-        input clk,
-        input rst,
-        input error,
-
-        // Bus Interface
-        output logic busWrite,
-        output logic busRead,
-        output logic [1:0] data_size,
-        output logic [31:0] bus_addr,
-        output logic [31:0] bus_in,
-        input logic [31:0] bus_out
-    ); 
+module core(
+    input rst,
+    sys_bus bus
+    );
 
     // -- Signals --
     
@@ -49,24 +40,25 @@ module core
     logic [31:0] inst;
     /* verilator lint_on UNUSED */
 
-    assign data_size = inst[13:12]; // Size of data to be written to bus
+
+    assign bus.size = inst[13:12]; // Size of data to be written to bus
 
 
     (* keep_hierarchy=1 *)
     control_unit control_unit(
         // Inputs
-    	.clk      (clk),
+    	.clk      (bus.clk),
         .rst      (rst),
         .opcode   (inst[6:0]),
-        .error    (error),
+        .error    (bus.error),
 
         // Outputs
         .enBranch (enBranch),
         .pcUpdate (pcUpdate),
         .irWrite  (irWrite),
         .addrSrc  (addrSrc),
-        .memWrite (busWrite),
-        .memRead  (busRead),
+        .memWrite (bus.wr),
+        .memRead  (bus.rd),
         .regSrc   (regSrc),
         .regWrite (regWrite),
         .aluSrcA  (aluSrcA),
@@ -90,9 +82,9 @@ module core
     (* keep_hierarchy=1 *)
     datapath datapath(
         // Inputs
-    	.clk      (clk),
+    	.clk      (bus.clk),
         .rst      (rst),
-        .data_in  (bus_out),
+        .data_in  (bus.rdata),
         .enBranch (enBranch),
         .pcUpdate (pcUpdate),
         .irWrite  (irWrite),
@@ -106,8 +98,8 @@ module core
 
         // Outputs
         .inst_out (inst ),
-        .addr     (bus_addr),
-        .data_out (bus_in)
+        .addr     (bus.addr),
+        .data_out (bus.wdata)
     );
 
 endmodule
