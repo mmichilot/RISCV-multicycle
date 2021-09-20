@@ -2,4 +2,7 @@
 /core_tb/obj_dir
 /core_tb/logs
 /core_tb/mem.txt
+/cpu_tb/obj_dir
+/cpu_tb/logs
+/cpu_tb/mem.txt
 /sw/build
