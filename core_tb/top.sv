@@ -31,12 +31,14 @@ module top
     otter_bus sysBus(clk);
 
     // Note: yosys throws warnings about interface signals being implicitly
-    //       declared.
-    //       Issue is currenly OPEN on Yosys GitHub
+    //       declared. If 'default_nettype none' is used, yosys throws an error
+    //       instead.
+    // Temp. Solution: Don't use 'default_nettype none' until issue is resolved
+    // Issue: Currently OPEN on Yosys GitHub
     //       https://github.com/YosysHQ/yosys/issues/1053
-    
+
     (* keep=1 *)
-    (* keep_hierarchy=1 *)
+    (* keep_hierarchy=1 *
     core core(
         .rst(rst),
         .bus(sysBus)
