@@ -1,6 +1,4 @@
-interface otter_bus #(parameter  WIDTH = 32) (
-        input clk
-    );
+interface otter_bus #(parameter  WIDTH = 32);
     logic error;
     logic wr;
     logic rd;
@@ -10,12 +8,12 @@ interface otter_bus #(parameter  WIDTH = 32) (
     logic [WIDTH-1:0] wdata;
 
     modport primary(
-        input error, rdata, clk,
+        input error, rdata,
         output wr, rd, size, addr, wdata
     );
 
     modport secondary (
-        input wr, rd, size, addr, wdata, clk,
+        input wr, rd, size, addr, wdata,
         output rdata, error
     );
 

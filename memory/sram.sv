@@ -26,6 +26,7 @@ module sram
         parameter ADDR_WIDTH = 15,
         parameter BUS_WIDTH = 32
     ) (
+        input clk,
         otter_bus.secondary bus
     );
 
@@ -52,7 +53,7 @@ module sram
         .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
         .RAM_BUS_WIDTH  (BUS_WIDTH)
     ) ram (
-        .clk    (bus.clk),
+        .clk    (clk),
         .rd     (bus.rd),
         .we     (s_we),
         .addr   (s_addr),
@@ -62,15 +63,15 @@ module sram
 
     assign s_addr = bus.addr[ADDR_WIDTH-1:2];
 
-    always_comb begin : addr_check
-        bus.error = 0;
+    always_ff @(posedge clk) begin : addr_check
+        bus.error <= 0;
  
         if (bus.addr > MAX_ADDR) // Address space 
-            bus.error = 1;
+            bus.error <= 1;
         else if (bus.size == WORD && bus.addr[1:0] != 2'b0) // Word boundary
-            bus.error = 1;
+            bus.error <= 1;
         else if (bus.size == HALF && bus.addr[0] != 0) // Half-word boundary
-            bus.error = 1;
+            bus.error <= 1;
     end
 
     always_comb begin : byte_en_set

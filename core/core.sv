@@ -22,9 +22,10 @@
 
 module core(
     input rst,
+    input clk,
     otter_bus.primary bus
     );
-
+    
     // -- Signals --
     
     // Control Unit
@@ -43,11 +44,11 @@ module core(
 
     assign bus.size = inst[13:12]; // Size of data to be written to bus
 
-
+    (* keep = 1 *)
     (* keep_hierarchy=1 *)
     control_unit control_unit(
         // Inputs
-    	.clk      (bus.clk),
+    	.clk      (clk),
         .rst      (rst),
         .opcode   (inst[6:0]),
         .error    (bus.error),
@@ -63,9 +64,10 @@ module core(
         .regWrite (regWrite),
         .aluSrcA  (aluSrcA),
         .aluSrcB  (aluSrcB),
-        .aluCtrl  (aluCtrl)
+        .aluCtrl  (aluCtrl),
     );
 
+    (* keep = 1 *)
     (* keep_hierarchy=1 *)
     decoder decoder(
         // Inputs
@@ -79,10 +81,11 @@ module core(
         .aluOp     (aluOp)
     );
 
+    (* keep = 1 *)
     (* keep_hierarchy=1 *)
     datapath datapath(
         // Inputs
-    	.clk      (bus.clk),
+    	.clk      (clk),
         .rst      (rst),
         .data_in  (bus.rdata),
         .enBranch (enBranch),
