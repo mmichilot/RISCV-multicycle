@@ -64,7 +64,7 @@ module core(
         .regWrite (regWrite),
         .aluSrcA  (aluSrcA),
         .aluSrcB  (aluSrcB),
-        .aluCtrl  (aluCtrl),
+        .aluCtrl  (aluCtrl)
     );
 
     (* keep = 1 *)

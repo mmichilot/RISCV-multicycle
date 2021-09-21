@@ -28,7 +28,7 @@ module top
         input rst
     );
 
-    otter_bus sysBus(clk);
+    otter_bus sysBus();
 
     // Note: yosys throws warnings about interface signals being implicitly
     //       declared. If 'default_nettype none' is used, yosys throws an error
@@ -38,8 +38,9 @@ module top
     //       https://github.com/YosysHQ/yosys/issues/1053
 
     (* keep=1 *)
-    (* keep_hierarchy=1 *
+    (* keep_hierarchy=1 *)
     core core(
+        .clk(clk),
         .rst(rst),
         .bus(sysBus)
     );
@@ -48,6 +49,7 @@ module top
     (* keep=1 *)
     (* keep_hierarchy=1 *)
     sram sram(
+        .clk(clk),
         .bus(sysBus)
     );
     
