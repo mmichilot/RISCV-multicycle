@@ -43,10 +43,12 @@ module uart (
             clk_count <= clk_count + 1;
     end
 
-    enum logic [1:0] {
-        RST_CPU     = 2'b01,
-        STEP_CPU    = 2'b10,
-        READ_BUS    = 2'b11
+    enum logic [2:0] {
+        RST_CPU     = 1,
+        STEP_CPU    = 2,
+        READ_ADDR   = 3,
+        READ_RDATA  = 4,
+        READ_WDATA  = 5
     } commands_e;
 
     // UART Transceiver
@@ -54,82 +56,113 @@ module uart (
     logic [7:0] tx_data;
     logic [3:0] bit_count;
 
-    logic [1:0] hold_rst;
+    logic [1:0] byte_sel;
+    logic [31:0] buffer;
+
+
     
-    typedef enum logic [1:0] {IDLE,READ,EXECUTE,TRANSMIT} state_e;
+    typedef enum logic [2:0] {IDLE,READ,EXECUTE,START,TRANSMIT,STOP} state_e;
     state_e state;
  
     always_ff @(posedge uart_clk) begin
         case (state)
             IDLE: begin
-                cpu_clk <= 0;
-                cpu_rst <= 0;
-                TX      <= 1;
-                tx_data <= 0;
-                rx_data <= 0;
+                byte_sel  <= 0;
+                cpu_clk   <= 0;
+                cpu_rst   <= 0;
+                TX        <= 1;
+                tx_data   <= 0;
+                rx_data   <= 0;
                 bit_count <= 0;
-                hold_rst  <= 0;
 
                 if (RX == 1'b0) state <= READ;
                 else            state <= IDLE;
             end
 
             READ: begin
-                
-                if (bit_count < 8) begin
-                    rx_data    <= rx_data >> 1;
-                    rx_data[7] <= RX;
-                    bit_count  <= bit_count + 1;
-                    state <= READ;
-                end else               
-                    state <= EXECUTE;
+                rx_data    <= rx_data >> 1;
+                rx_data[7] <= RX;
+                bit_count  <= bit_count + 1;
+
+                if (bit_count < 7) state <= READ;
+                else               state <= EXECUTE;
             end
 
             EXECUTE: begin
-                case (rx_data[1:0]) 
+                case (rx_data[2:0])
                     RST_CPU: begin
                         cpu_rst <= 1;
-                        cpu_clk <= ~cpu_clk;
-                        hold_rst <= hold_rst + 1;
-                        if (hold_rst < 2) state <= EXECUTE;
-                        else              state <= IDLE;
+                        cpu_clk <= 1;
+
+                        state <= IDLE;
                     end
 
                     STEP_CPU: begin
                         cpu_clk <= 1;
+                        
                         state   <= IDLE;
                     end
 
-                    READ_BUS: begin
-                        tx_data <= bus_rdata[7:0];
-                        TX      <= 1'b0;
-                        bit_count <= 0;
-                        state <= TRANSMIT;
+                    READ_ADDR: begin
+                        buffer <= bus_addr;
+
+                        state <= START;
+                    end
+
+                    READ_RDATA: begin
+                        buffer <= bus_rdata;
+
+                        state <= START;
+                    end
+
+                    READ_WDATA: begin
+                        buffer <= bus_wdata;
+
+                        state <= START;
                     end
 
                     default: begin
                         cpu_clk <= 0;
                         cpu_rst <= 0;
+
                         state   <= IDLE;
                     end
                 endcase
-                
+            end
+
+            START: begin
+                tx_data <= buffer[8*byte_sel +: 8];
+                TX <= 1'b0;
+                bit_count <= 0;
+                state <= TRANSMIT;
             end
 
             TRANSMIT: begin
-                if (bit_count < 8) begin 
-                    TX      <= tx_data[0];
-                    tx_data <= tx_data >> 1;
-                    bit_count <= bit_count + 1;
-                    state <= TRANSMIT;
-                end else               
-                    state <= IDLE;
+                TX      <= tx_data[0];
+                tx_data <= tx_data >> 1;
+                bit_count <= bit_count + 1;
+
+                if (bit_count < 7) state <= TRANSMIT;
+                else               state <= STOP;
+            end
+
+            STOP: begin
+                byte_sel <= byte_sel + 1;
+                TX <= 1'b1;
+
+                if (byte_sel < 3) state <= START;
+                else              state <= IDLE;
             end
 
             default: begin
-                tx_data <= 0;
-                rx_data <= 0;
+                byte_sel  <= 0;
+                cpu_clk   <= 0;
+                cpu_rst   <= 0;
+                TX        <= 1;
+                tx_data   <= 0;
+                rx_data   <= 0;
                 bit_count <= 0;
+                state     <= IDLE;
             end
         endcase
     end

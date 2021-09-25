@@ -10,13 +10,19 @@ module top
 
         output logic TX,
 
-        output logic cpu_clk,
-        output logic cpu_rst,
-        output logic [2:0] state_out
+        output logic rgb_led0_r,
+        output logic rgb_led0_g,
+        output logic rgb_led0_b
     );
 
+    // Signals
+    logic cpu_clk, cpu_rst;
+
+    assign rgb_led0_r = ~cpu_rst;
+    assign rgb_led0_g = ~cpu_clk;
+    assign rgb_led0_b = 1;
+
     otter_bus mem_bus();
-    
 
     (* keep=1 *)
     (* keep_hierarchy=1 *)
@@ -35,7 +41,7 @@ module top
     (* keep=1 *)
     (* keep_hierarchy=1 *)
     core u_core(
-    	.rst (cpu_rst ),
+        .rst (cpu_rst ),
         .clk (cpu_clk ),
         .bus (mem_bus )
     );

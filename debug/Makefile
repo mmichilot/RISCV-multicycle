@@ -13,8 +13,6 @@ INCLUDE_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 RM         = rm -rf
 COPY       = cp -a
 PATH_SEP   = /
-
-all: $(PROJ).bit
 	
 # We don't actually need to do anything to verilog files.
 # This explicitly empty recipe is merely referenced from
@@ -47,7 +45,12 @@ all: $(PROJ).bit
 %.bit: %_out.config
 	ecppack --compress --freq 38.8 --input $< --bit $@
 
+flash: $(PROJ).bit
+	openFPGALoader -d /dev/ttyUSB0 -f $(PROJ).bit
+
 clean:
 	$(RM) -f $(PROJ).bit $(PROJ)_out.config $(PROJ).json 
 
-.PHONY: sim clean
+all: flash
+
+.PHONY: clean all
