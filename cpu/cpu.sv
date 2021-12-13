@@ -23,11 +23,8 @@
 
 module cpu (
     input clk,
-    input rst,
-    otter_bus.primary mem_bus
+    input rst
 );
-
-otter_bus core_bus();
 
 core core(
     .clk (clk),

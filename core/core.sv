@@ -21,9 +21,17 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module core(
-    input rst,
-    input clk,
-    otter_bus.primary bus
+        input clk,
+        input rst,
+        input error,
+        input [31:0] data_in,
+
+        output logic memRead,
+        output logic memWrite,
+        output logic sign,
+        output logic [1:0] size,
+        output logic [31:0] addr,
+        output logic [31:0] data_out
     );
     
     // -- Signals --
@@ -41,8 +49,9 @@ module core(
     logic [31:0] inst;
     /* verilator lint_on UNUSED */
 
-
-    assign bus.size = inst[13:12]; // Size of data to be written to bus
+    // Assign sign and size based on instruction
+    assign sign = inst[14];
+    assign size = inst[13:12];
 
     (* keep = 1 *)
     (* keep_hierarchy=1 *)
@@ -51,15 +60,15 @@ module core(
     	.clk      (clk),
         .rst      (rst),
         .opcode   (inst[6:0]),
-        .error    (bus.error),
+        .error    (error),
 
         // Outputs
         .enBranch (enBranch),
         .pcUpdate (pcUpdate),
         .irWrite  (irWrite),
         .addrSrc  (addrSrc),
-        .memWrite (bus.wr),
-        .memRead  (bus.rd),
+        .memWrite (memRead),
+        .memRead  (memWrite),
         .regSrc   (regSrc),
         .regWrite (regWrite),
         .aluSrcA  (aluSrcA),
@@ -87,7 +96,7 @@ module core(
         // Inputs
     	.clk      (clk),
         .rst      (rst),
-        .data_in  (bus.rdata),
+        .data_in  (data_in),
         .enBranch (enBranch),
         .pcUpdate (pcUpdate),
         .irWrite  (irWrite),
@@ -101,8 +110,8 @@ module core(
 
         // Outputs
         .inst_out (inst),
-        .addr     (bus.addr),
-        .data_out (bus.wdata)
+        .addr     (addr),
+        .data_out (data_out)
     );
 
 endmodule

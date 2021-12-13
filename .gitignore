@@ -1,8 +1,8 @@
 .vscode
-/core_tb/obj_dir
-/core_tb/logs
-/core_tb/mem.txt
-/cpu_tb/obj_dir
-/cpu_tb/logs
-/cpu_tb/mem.txt
+/core_test/obj_dir
+/core_test/logs
+/core_test/mem.txt
+/cpu_test/obj_dir
+/cpu_test/logs
+/cpu_test/mem.txt
 /sw/build

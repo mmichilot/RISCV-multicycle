@@ -52,7 +52,7 @@ module datapath
     logic [31:0] pc_out;
 
     // Size + Extend
-    logic [31:0] sz_ex_out;
+    //logic [31:0] sz_ex_out;
 
     // Register File
     logic [31:0] rs1_data, rs2_data, rd_data;
@@ -118,24 +118,24 @@ module datapath
     end
 
     // Size and Extend
-    (* keep_hierarchy=1 *)
-    sz_ex sz_ex(
-        // Inputs
-    	.data     (data_in),
-        .byte_sel (addr[1:0]),
-        .size     (inst[13:12]),
-        .sign     (inst[14]),
+    // (* keep_hierarchy=1 *)
+    // sz_ex sz_ex(
+    //     // Inputs
+    // 	.data     (data_in),
+    //     .byte_sel (addr[1:0]),
+    //     .size     (inst[13:12]),
+    //     .sign     (inst[14]),
 
-        // Outputs
-        .out      (sz_ex_out)
-    );
+    //     // Outputs
+    //     .out      (sz_ex_out)
+    // );
     
 
     always_comb begin : regSrc_MUX
         case(regSrc)
             PC:      rd_data = pc_out;
             ALU:     rd_data = alu_out;
-            MEM:     rd_data = sz_ex_out;
+            MEM:     rd_data = data_in;
             default: rd_data = alu_out;
         endcase
     end
@@ -193,5 +193,16 @@ module datapath
         .b     (alu_b),
         .out   (alu_out)
     );
+
+    // always_comb begin : byte_sel_set
+    //     byte_sel = 4'b0;
+
+    //     case(inst[13:12])
+    //             BYTE:    s_we[byte_sel] = 1'b1;
+    //             HALF:    s_we[byte_sel +: 2] = 2'b11;
+    //             WORD:    s_we = 4'b1111;
+    //             default: s_we = 0;
+    //     endcase
+    // end
     
 endmodule
