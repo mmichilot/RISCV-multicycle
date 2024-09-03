@@ -1,256 +1,107 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 01/20/2019 11:51:23 AM
-// Design Name: 
-// Module Name: ControlUnit
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+`include "defs.svh"
 
-module control_unit(
+module control_unit (
     input clk,
     input rst,
-    input [6:0] opcode,
+    // verilator lint_off UNUSED
+    input [31:0] inst,
+    // verilator lint_on UNUSED
     input error,
 
-    output logic enBranch,
-    output logic pcUpdate,
-    output logic irWrite,
-    output logic addrSrc,
-    output logic memWrite,
-    output logic memRead,
-    output logic [1:0] regSrc,
-    output logic regWrite,
-    output logic [1:0] aluSrcA,
-    output logic [1:0] aluSrcB,
-    output logic aluCtrl
+    output logic pc_write,
+    output logic inst_read,
+    output logic data_read,
+    output logic data_write,
+    output logic reg_write,
+    output logic csr_write
     );
 
-    /* verilator lint_off UNUSED */
-    enum logic [6:0] {
-        LUI      = 7'b0110111,
-        AUIPC    = 7'b0010111,
-        JAL      = 7'b1101111,
-        JALR     = 7'b1100111,
-        BRANCH   = 7'b1100011,
-        LOAD     = 7'b0000011,
-        STORE    = 7'b0100011,
-        OP_IMM   = 7'b0010011,
-        OP       = 7'b0110011,
-        SYSTEM   = 7'b1110011
-    } opcode_e;
+    logic [6:0] opcode;
+    assign opcode = inst[6:0];
 
-    enum logic {PC_OUT,ALU_OUT} addrSrc_e;
-    enum logic [1:0] {PC,ALU,MEM} regSrc_e;
-    enum logic [1:0] {CURR_PC,OLD_PC,RS1,ZERO} aluSrcA_e;
-    enum logic [1:0] {RS2,IMMED,FOUR} aluSrcB_e;
-    enum logic {ADD_OP,ALU_OP} aluCtrl_e;
-    
-    /* verilator lint_on UNUSED */
+    logic [2:0] func3;
+    assign func3 = inst[14:12];
 
-    typedef enum logic[2:0] {MEMREAD,FETCH,EXECUTE,WB,HALT} state_e;
-    state_e state, next;
+    typedef enum logic [1:0] {FETCH, EXECUTE, WB, HALT} state_e;
+    state_e current_state, next_state;
 
-    always_ff @(posedge clk) begin :  present_state_logic
-        if (rst)        state <= MEMREAD;
-        else if (error) state <= HALT;
-        else            state <= next;
+    always_ff @(posedge clk) begin
+        if (rst)        current_state <= FETCH;
+        else if (error) current_state <= HALT;
+        else            current_state <= next_state;
     end 
                        
     always_comb begin : output_logic
-        enBranch = 0;
-        pcUpdate = 0;
-        irWrite  = 0;
-        addrSrc  = 0;
-        memWrite = 0;
-        memRead  = 0;
-        regSrc   = 0;
-        regWrite = 0;
-        aluSrcA  = 0;
-        aluSrcB  = 0;
-        aluCtrl  = 0;
+        // Default values
+        pc_write   = 0;
+        inst_read  = 0;
+        data_read  = 0;
+        data_write = 0;
+        reg_write  = 0;
+        csr_write  = 0;
 
-        case (state)
-            MEMREAD: begin
-                addrSrc = PC_OUT;
-                memRead = 1;
-            end
+        unique case (current_state)
+            // Fetch instruction
+            FETCH: inst_read = 1;
 
-            FETCH: begin
-                irWrite  = 1;
-
-                aluSrcA  = CURR_PC;
-                aluSrcB  = FOUR;
-                aluCtrl  = ADD_OP;
-                pcUpdate = 1;
-            end
-
+            // Execute instruction
             EXECUTE: begin
-                case(opcode)
-                    LUI: begin
-                        aluSrcA = ZERO;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        regSrc   = ALU;
-                        regWrite = 1;
+                unique case(opcode)
+                    LUI, AUIPC, OP_IMM, OP, JAL, JALR: begin
+                        pc_write  = 1;
+                        reg_write = 1;
                     end
 
-                    AUIPC: begin
-                        aluSrcA = OLD_PC;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        regSrc   = ALU;
-                        regWrite = 1;
-                    end
-
-                    JAL: begin
-                        aluSrcA = OLD_PC;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        regSrc   = PC;
-                        regWrite = 1;
-
-                        pcUpdate = 1;
-                    end
-
-                    JALR: begin
-                        aluSrcA = RS1;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        regSrc   = PC;
-                        regWrite = 1;
-
-                        pcUpdate = 1;
-                    end
-
-                    BRANCH: begin
-                        aluSrcA = OLD_PC;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        enBranch = 1;
-                    end
-
-                    LOAD: begin
-                        aluSrcA = RS1;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        addrSrc = ALU_OUT;
-                        memRead = 1;
-                    end
-
+                    BRANCH, FENCE: pc_write = 1;
+                    
+                    LOAD: data_read = 1;
+                    
                     STORE: begin
-                        aluSrcA = RS1;
-                        aluSrcB = IMMED;
-                        aluCtrl = ADD_OP;
-
-                        addrSrc   = ALU_OUT;
-                        memWrite  = 1;
+                        pc_write   = 1;
+                        data_write = 1;
                     end
 
-                    OP_IMM: begin
-                        aluSrcA = RS1;
-                        aluSrcB = IMMED;
-                        aluCtrl = ALU_OP;
-
-                        regSrc   = ALU;
-                        regWrite = 1;
+                    SYSTEM: begin
+                        pc_write  = 1;
+                        reg_write = func3 != '0;
+                        csr_write = func3 != '0;
                     end
 
-                    OP: begin
-                        aluSrcA = RS1;
-                        aluSrcB = RS2;
-                        aluCtrl = ALU_OP;
-
-                        regSrc   = ALU;
-                        regWrite = 1;
-                    end
-
-                    default: begin
-                        enBranch = 0;
-                        pcUpdate = 0;
-                        irWrite  = 0;
-                        addrSrc  = 0;
-                        memWrite = 0;
-                        memRead  = 0;
-                        regSrc   = 0;
-                        regWrite = 0;
-                        aluSrcA  = 0;
-                        aluSrcB  = 0;
-                        aluCtrl  = 0;
-                    end
+                    default: ;
                 endcase
             end
 
-            WB: begin
-                aluSrcA = RS1;
-                aluSrcB = IMMED;
-                aluCtrl = ADD_OP;
-
-                addrSrc = ALU_OUT;
-
-                regSrc   = MEM;
-                regWrite = 1;
+            // Writeback for LOAD-type instructions
+            WB: begin                
+                reg_write = 1;
+                pc_write  = 1;
             end
 
+            // Disable all control signals when halted
             HALT: begin
-                enBranch = 0;
-                pcUpdate = 0;
-                irWrite  = 0;
-                addrSrc  = 0;
-                memWrite = 0;
-                memRead  = 0;
-                regSrc   = 0;
-                regWrite = 0;
-                aluSrcA  = 0;
-                aluSrcB  = 0;
-                aluCtrl  = 0;
-            end
-
-            default: begin
-                enBranch = 0;
-                pcUpdate = 0;
-                irWrite  = 0;
-                addrSrc  = 0;
-                memWrite = 0;
-                memRead  = 0;
-                regSrc   = 0;
-                regWrite = 0;
-                aluSrcA  = 0;
-                aluSrcB  = 0;
-                aluCtrl  = 0;
+                pc_write   = 0;
+                inst_read  = 0;
+                data_read  = 0;
+                data_write = 0;
+                reg_write  = 0;
+                csr_write  = 0;
             end
         endcase
     end
 
     always_comb begin : next_state_logic
-        case (state)
-            MEMREAD: next = FETCH;
-            FETCH:   next = EXECUTE;
+        next_state = current_state;
+
+        unique case (current_state)
+            FETCH:   next_state = EXECUTE;
             EXECUTE: begin 
-                if (opcode == LOAD) next = WB;
-                else next = MEMREAD;
+                if (opcode == LOAD) next_state = WB;
+                else next_state = FETCH;
             end
-            WB:      next = MEMREAD;
-            HALT:    next = HALT;
-            default: next = HALT;
+            WB:      next_state = FETCH;
+            HALT:    next_state = HALT;
+            default: next_state = HALT;
         endcase
     end
     

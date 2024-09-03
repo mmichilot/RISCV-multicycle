@@ -1,8 +1,14 @@
 .vscode
-/core_test/obj_dir
-/core_test/logs
-/core_test/mem.txt
-/cpu_test/obj_dir
-/cpu_test/logs
-/cpu_test/mem.txt
-/sw/build
+
+# Verilator build artifacts
+*/obj_dir
+
+# Simulation artifacts
+*.fst*
+*.signature
+
+# Software build artifacts
+*/build
+
+# RISCOF artifacts
+*/riscof_work

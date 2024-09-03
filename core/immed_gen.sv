@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "defs.svh"
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: M. Michilot
@@ -21,26 +22,24 @@
 
 module immed_gen 
     (
-        /* verilator lint_off UNUSED */
+        // verilator lint_off UNUSED
         input [31:0] inst,
-        /* verilator lint_on UNUSED */
-        input [2:0] immedSrc,
+        // verilator lint_on UNUSED
+        input [2:0]  immed_type,
 
         output logic [31:0] immed
     );
 
-    /* verilator lint_off UNUSED */
-    enum logic [2:0] {I_IMMED,S_IMMED,B_IMMED,U_IMMED,J_IMMED} immedSrc_e;
-    /* verilator lint_on UNUSED */
+    
 
     always_comb begin
-        case(immedSrc)
+        case(immed_type)
             I_IMMED: immed = 32'(signed'(inst[31:20]));
             S_IMMED: immed = 32'(signed'({inst[31:25],inst[11:7]}));
             B_IMMED: immed = 32'(signed'({inst[31],inst[7],inst[30:25],inst[11:8],1'b0}));
             U_IMMED: immed = {inst[31:12], 12'b0};
             J_IMMED: immed = 32'(signed'({inst[31],inst[19:12],inst[20],inst[30:21],1'b0}));
-            default: immed = 0;
+            default: immed = '0;
         endcase
     end
 

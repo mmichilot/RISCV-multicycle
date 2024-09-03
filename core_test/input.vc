@@ -1,2 +1,0 @@
-// This file typically lists flags required by a large directory, e.g. include directories
-+librescan +libext+.v+.sv+.vh+.svh -y ../core -y ../memory -y ../bus

@@ -1,91 +1,71 @@
-# the name of the program we're going to build
-PROJECT = program
-# build directory
-BUILD = build
+TARGET_BIN = test
 
-# source files
-C_FILES := $(wildcard src/*.c)
-AS_FILES := $(wildcard src/*.s)
-ASP_FILES := $(wildcard src/*.S)
+BUILD_DIR := ./build
+SRC_DIR := ./src
 
-# object files
-C_OBJ_FILES := $(patsubst src/%.c,build/%.o,$(C_FILES))
-AS_OBJ_FILES := $(patsubst src/%.s,build/%.o,$(AS_FILES))
-ASP_OBJ_FILES := $(patsubst src/%.S,build/%.o,$(ASP_FILES))
+SRCS := $(wildcard $(SRC_DIR)/*.S)
+OBJS := $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%.o,$(SRCS))
 
-# settings for the compilers
-ifneq ($(C_FILES),)
-RISCV_PREFIX = riscv32-unknown-elf-
-else
-RISCV_PREFIX = riscv64-unknown-elf-
-endif
-CC = $(RISCV_PREFIX)gcc
-LD = $(RISCV_PREFIX)ld
-OBJCOPY = $(RISCV_PREFIX)objcopy
-OBJDUMP = $(RISCV_PREFIX)objdump
+INC_DIR := ./includes
+INC_FLAGS := $(addprefix -I,$(INC_DIR))
 
-TARGET_ARCH =  -march=rv32i -mabi=ilp32
-ifneq ($(C_FILES),)
-CCFLAGS = -O3 $(TARGET_ARCH) -g
-else
-CCFLAGS = -O0 $(TARGET_ARCH)
-endif
-#-fno-builtin
-#-mstrict-align
-#-static -static-libgcc -nostdlib
-#-S   #flag for getting assembly output directly
+# Tools
+RISCV_PREFIX := riscv64-unknown-elf-
+CC := $(RISCV_PREFIX)gcc
+LD := $(RISCV_PREFIX)ld
+OBJCOPY := $(RISCV_PREFIX)objcopy
+OBJDUMP := $(RISCV_PREFIX)objdump
+NM := $(RISCV_PREFIX)nm
+
+TARGET_ARCH := -march=rv32i -mabi=ilp32 -mcmodel=medany
+CCFLAGS := $(INC_FLAGS) -O0 $(TARGET_ARCH) -g -static -fvisibility=hidden
+LDFLAGS := -T./link.ld $(TARGET_ARCH) -nostdlib -nostartfiles -mno-relax
+
+DEFINES := TEST_CASE_1=1 XLEN=32
+CCFLAGS += $(addprefix -D,$(DEFINES))
+
+
 
 # Lists of rules: the name of a file, followed by the files it depends on.
 # When typing 'make' not followed by a rule name, the first rule is followed.  This rule depends on
 # everything, causing all the parts to be built
 
-all: dirs $(BUILD)/mem.txt $(BUILD)/$(PROJECT).dump
+all: dump memory symbols
 
-# how to build a .o file from a .c file
-$(BUILD)/%.o: src/%.c
-	$(CC) -c -o $@ $< $(CCFLAGS) 
+.PHONY: build
+build: $(BUILD_DIR)/$(TARGET_BIN).elf
 
-# how to build a .o file from a .s file
-$(BUILD)/%.o: src/%.s
-	$(CC) -c -o $@ $< $(CCFLAGS)
+$(BUILD_DIR)/$(TARGET_BIN).elf: $(OBJS)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 
-# how to build a .o file from a .S file
-$(BUILD)/%.o: src/%.S
-	$(CC) -c -o $@ $< $(CCFLAGS)
+$(BUILD_DIR)/%.o: $(SRCS)
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CCFLAGS) -c $< -o $@ 
 
-# link with gcc
-$(BUILD)/$(PROJECT).elf: ${AS_OBJ_FILES} ${C_OBJ_FILES} ${ASP_OBJ_FILES}
-ifneq ($(C_FILES),)
-	$(CC)  -o $@ $^ -T link.ld $(CCFLAGS) 
-else
-	$(CC) -o $@ $^ -T link.ld -mno-relax -nostdlib -nostartfiles -mcmodel=medany $(CCFLAGS)
-endif
+# dump binary
+.PHONY: dump
+dump: $(BUILD_DIR)/$(TARGET_BIN).dump
 
-#-Wl  --no-relax
-
-$(BUILD)/$(PROJECT).dump: $(BUILD)/$(PROJECT).elf
-ifneq ($(C_FILES),)
-	$(OBJDUMP) --no-show-raw-insn -S -s  $< > $@
-else
+$(BUILD_DIR)/$(TARGET_BIN).dump: $(BUILD_DIR)/$(TARGET_BIN).elf
 	$(OBJDUMP) -S -s $< > $@
-endif
-#no-show-raw_insn
-#-l line numbers
 
-# extract the binary data from data and text sections to get a binary image of memory
-$(BUILD)/mem.bin: $(BUILD)/$(PROJECT).elf
-	$(OBJCOPY) -O binary --only-section=.data* --only-section=.text* $< $@
+# create ASCII hex file for OTTER memory
+.PHONY: memory
+memory: $(BUILD_DIR)/$(TARGET_BIN).hex
 
-# convert to an ASCII hex file for OTTER memory
-$(BUILD)/mem.txt: $(BUILD)/mem.bin
+$(BUILD_DIR)/$(TARGET_BIN).hex: $(BUILD_DIR)/$(TARGET_BIN).bin
 	hexdump -v -e '1/4 "%08x\n"' $< > $@
 
-# make software project folder
-dirs:
-	mkdir -p $(BUILD)
+$(BUILD_DIR)/$(TARGET_BIN).bin: $(BUILD_DIR)/$(TARGET_BIN).elf
+	$(OBJCOPY) -O binary $< $@
 
-# 'clean' rule: delete all the files so we can start afresh
+# dump symbols
+.PHONY: symbols
+symbols: $(BUILD_DIR)/$(TARGET_BIN).symbols
+
+$(BUILD_DIR)/$(TARGET_BIN).symbols: $(BUILD_DIR)/$(TARGET_BIN).elf
+	$(NM) -g -B -n $< > $@
+
+.PHONY: clean	
 clean:
-	rm -rf $(BUILD)
-
-print-%  : ; @echo $* = $($*)
+	rm -rf $(BUILD_DIR)

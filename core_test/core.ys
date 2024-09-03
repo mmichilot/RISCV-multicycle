@@ -1,2 +1,0 @@
-read_verilog -sv -I../bus/ -I../core/ -I../memory/ top.sv
-synth_ecp5

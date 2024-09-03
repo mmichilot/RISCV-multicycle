@@ -34,9 +34,8 @@ module reg_file(
     );
 
     localparam x0 = 0;
-    typedef logic [31:0] u_word;
 
-    u_word regs [31:0]; // 32 registers each 32 bits long
+    logic [31:0] regs [32]; // 32 registers each 32 bits long
 
     always_comb begin
         if (rs1 == x0) 
@@ -52,9 +51,8 @@ module reg_file(
             rs2_data = regs[rs2];
     end
     
-    always_ff@(posedge clk) 
-    begin
-        if(wr && rd != x0) 
+    always_ff @(posedge clk) begin
+        if(wr && rd != x0)
             regs[rd] <= rd_data;
     end
 
