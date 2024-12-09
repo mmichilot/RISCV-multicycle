@@ -12,3 +12,5 @@
 
 # RISCOF artifacts
 */riscof_work
+
+**/__pycache__/
