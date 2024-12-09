@@ -71,14 +71,14 @@ class otter(pluginTemplate):
         # test. Similarly the output elf name and compile macros will be assigned later in the
         # runTests function
         self.compile_cmd = 'riscv64-unknown-elf-gcc -march={0} \
-            -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
+-static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
             -T '+self.pluginpath+'/env/link.ld\
             -I '+self.pluginpath+'/env/\
             -I ' + archtest_env + ' {2} -o {3} {4}'
 
         # Command to convert binary to hex file
         self.dump_cmd = 'riscv64-unknown-elf-objdump -x -S -s {3} > program.dump'
-        self.binary_cmd = 'riscv64-unknown-elf-objcopy -O binary {3} program.bin'
+        self.binary_cmd = 'riscv64-unknown-elf-objcopy -O binary --only-section=.data* --only-section=.text* {3} program.bin'
         self.hex_cmd = 'hexdump -v -e \'1/4 "%08x\\n"\' program.bin > program.hex'
        
         # Command to extract symbols

@@ -1,4 +1,2 @@
-read_verilog -sv  ../core/*.sv
-read_verilog -sv  ../memory/*.sv
-read_verilog -sv top.sv
-synth_ecp5
+read_verilog -sv -I../core ../core/*.sv ../memory/*.sv top.sv
+synth_ecp5 -top top

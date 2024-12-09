@@ -1,29 +1,9 @@
 `timescale 1ns / 1ps
 
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: M. Michilot
-// 
-// Create Date: 08/20/2021
-// Design Name: Basic CPU Wrapper
-// Module Name: top
-// Project Name: OTTER CPU
-// Target Devices:
-// Tool Versions: 
-// Description: Basic CPU Wrapper to be used with Verilator testbench
-// 
-// Dependencies: None
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
 module top
     (
-        input         clk_i,
-        input         rst_i,
+        input         clk,
+        input         rst_n,
 
         input bit [31:0] mem_signature_begin,
         input bit [31:0] mem_signature_end,
@@ -51,10 +31,12 @@ module top
     logic [31:0] s_data_write_data;
     logic [31:0] s_data_read_data;
 
+    // Interrupts
+    logic [31:0] interrupts;
+
     core core(
-        .clk(clk_i),
-        .rst(rst_i),
-        .error(1'b0),
+        .clk,
+        .rst_n,
 
         .inst_read(s_inst_read),
         .inst_addr(s_inst_addr),
@@ -66,21 +48,30 @@ module top
         .data_size(s_data_size),
         .data_addr(s_data_addr),
         .data_write_data(s_data_write_data),
-        .data_read_data(s_data_read_data)
+        .data_read_data(s_data_read_data),
+
+        .interrupts
     );
 
-    sram sram(
-        .clk(clk_i),
+
+    logic [31:0] sram_addr_A, sram_addr_B;
+    assign sram_addr_A = {1'b0, s_inst_addr[30:0]};
+    assign sram_addr_B = {1'b0, s_data_addr[30:0]};
+
+    sram #(
+        .ADDR_WIDTH (21)
+    ) sram (
+        .clk,
         
         .read_A(s_inst_read),
-        .addr_A(s_inst_addr),
+        .addr_A(sram_addr_A),
         .data_A(s_inst_data),
 
         .read_B(s_data_read),
         .write_B(s_data_write),
         .sign_B(s_data_sign),
         .size_B(s_data_size),
-        .addr_B(s_data_addr),
+        .addr_B(sram_addr_B),
         .wr_data_B(s_data_write_data),
         .rd_data_B(s_data_read_data)
     );
@@ -105,13 +96,13 @@ module top
     /* verilator lint_off UNUSED */
     logic [31:0] mailbox_data;
     /* verilator lint_on UNUSED */
-    assign mailbox_write = sram.write_B && (sram.addr_B == mem_mailbox);
-    assign mailbox_data  = sram.wr_data_B;
+    assign mailbox_write = s_data_write && (s_data_addr == mem_mailbox);
+    assign mailbox_data  = s_data_write_data;
 
     parameter MAX_CYCLE_COUNT = 100_000;
 
     int cycleCnt = 0;
-    always @(negedge clk_i) begin
+    always @(negedge clk) begin
         cycleCnt <= cycleCnt + 1;
 
         if (s_inst_read) 

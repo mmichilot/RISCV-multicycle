@@ -1,24 +1,5 @@
 `timescale 1ns / 1ps
 `include "defs.svh"
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: M. Michilot
-// 
-// Create Date: 01/27/2019 08:37:11 AM
-// Design Name: OTTER Immediate Generator
-// Module Name: immed_gen
-// Project Name: OTTER CPU
-// Target Devices: N/A
-// Tool Versions: 
-// Description: Generates the immediates
-// 
-// Dependencies:
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module immed_gen 
     (
@@ -29,8 +10,6 @@ module immed_gen
 
         output logic [31:0] immed
     );
-
-    
 
     always_comb begin
         case(immed_type)

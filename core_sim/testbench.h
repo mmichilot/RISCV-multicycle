@@ -22,10 +22,10 @@ public:
     }
 
     virtual void reset(void) {
-        m_core->rst_i = 1;
+        m_core->rst_n = 0;
         // Make sure any inheritance gets applied
         this->tick();
-        m_core->rst_i = 0;
+        m_core->rst_n = 1;
     }
 
     virtual void tick(void) {
@@ -37,7 +37,7 @@ public:
 
         // Rising edge
         m_time_ps += 5000;
-        m_core->clk_i = 1;
+        m_core->clk = 1;
         m_core->eval();
         if (m_trace) {
             m_trace->dump(m_time_ps);
@@ -46,7 +46,7 @@ public:
 
         // Falling edge
         m_time_ps += 5000;
-        m_core->clk_i = 0;
+        m_core->clk = 0;
         m_core->eval();
         if (m_trace) m_trace->dump(m_time_ps);
     }

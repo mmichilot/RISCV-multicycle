@@ -23,7 +23,7 @@
 
 module sram
     #(
-        parameter ADDR_WIDTH = 25,
+        parameter ADDR_WIDTH = 18,
         parameter BUS_WIDTH = 32
     ) (
         input clk,
@@ -50,12 +50,12 @@ module sram
     localparam RAM_ADDR_WIDTH = ADDR_WIDTH-2;
 
     /* verilator lint_off UNUSED */
-    enum logic {
+    typedef enum logic {
         SIGNED = 1'b0,
         UNSIGNED = 1'b1
     } sign_e;
 
-    enum logic [1:0] {
+    typedef enum logic [1:0] {
         BYTE = 2'b00,
         HALF = 2'b01,
         WORD = 2'b10

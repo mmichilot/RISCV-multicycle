@@ -17,7 +17,7 @@ OBJCOPY := $(RISCV_PREFIX)objcopy
 OBJDUMP := $(RISCV_PREFIX)objdump
 NM := $(RISCV_PREFIX)nm
 
-TARGET_ARCH := -march=rv32i -mabi=ilp32 -mcmodel=medany
+TARGET_ARCH := -march=rv32i_zicsr -mabi=ilp32 -mcmodel=medany
 CCFLAGS := $(INC_FLAGS) -O0 $(TARGET_ARCH) -g -static -fvisibility=hidden
 LDFLAGS := -T./link.ld $(TARGET_ARCH) -nostdlib -nostartfiles -mno-relax
 
@@ -57,7 +57,7 @@ $(BUILD_DIR)/$(TARGET_BIN).hex: $(BUILD_DIR)/$(TARGET_BIN).bin
 	hexdump -v -e '1/4 "%08x\n"' $< > $@
 
 $(BUILD_DIR)/$(TARGET_BIN).bin: $(BUILD_DIR)/$(TARGET_BIN).elf
-	$(OBJCOPY) -O binary $< $@
+	$(OBJCOPY) -O binary --only-section=.data* --only-section=.text* $< $@
 
 # dump symbols
 .PHONY: symbols

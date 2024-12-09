@@ -1,24 +1,5 @@
 `timescale 1ns / 1ps
 `include "defs.svh"
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: J. Callenes
-// 
-// Create Date: 01/27/2019 09:22:55 AM
-// Design Name: 
-// Module Name: CU_Decoder
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module decoder(
     input [6:0] opcode,
@@ -28,6 +9,8 @@ module decoder(
     // verilator lint_on UNUSED
 
     input take_branch,
+    input trap_start,
+    input trap_finish,
 
     output logic [2:0] immed_type,
 
@@ -35,9 +18,10 @@ module decoder(
     output logic alu_b_src,
     output logic [3:0] alu_op,
     output logic [1:0] reg_src,
-    output logic pc_src
+    output logic [2:0] pc_src
     );
 
+    // Immediate MUX
     always_comb begin
         unique case(opcode)
            LUI,AUIPC: immed_type = U_IMMED;
@@ -49,6 +33,7 @@ module decoder(
         endcase
     end
 
+    // ALU Source MUX
     always_comb begin
         unique case(opcode)
             LUI: begin
@@ -78,6 +63,7 @@ module decoder(
         endcase
     end
 
+    // Register File Source MUX
     always_comb begin
         unique case(opcode)
             LUI, AUIPC, OP_IMM, OP: reg_src = ALU;
@@ -88,15 +74,22 @@ module decoder(
         endcase
     end
 
+    // PC Source MUX
     always_comb begin
-        unique case(opcode)
-            LUI, AUIPC, OP_IMM, OP, LOAD, STORE: pc_src = PC_PLUS_4;
-            JAL, JALR: pc_src = ALU_OUT;
-            BRANCH:    pc_src = take_branch ? ALU_OUT : PC_PLUS_4;
-            default:   pc_src = PC_PLUS_4;
-        endcase
+        if (trap_start)       pc_src = CSR_MTVEC;
+        else if (trap_finish) pc_src = CSR_MEPC;
+        else begin 
+            unique case(opcode)
+                LUI, AUIPC, OP_IMM, OP, LOAD, STORE: pc_src = PC_PLUS_4;
+                JAL:  pc_src = ALU_OUT;
+                JALR: pc_src = LSB_ZERO;
+                BRANCH:    pc_src = take_branch ? ALU_OUT : PC_PLUS_4;
+                default:   pc_src = PC_PLUS_4;
+            endcase
+        end
     end
 
+    // ALU Operation
     localparam SHIFT_RIGHT = 3'b101;
     always_comb begin
         unique case(opcode)

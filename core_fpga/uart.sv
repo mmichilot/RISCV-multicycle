@@ -1,23 +1,4 @@
-`include "buses.svh"
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: M. Michilot
-// 
-// Create Date: 08/20/2021
-// Design Name: UART Controller
-// Module Name: uart
-// Project Name: OTTER CPU
-// Target Devices:
-// Tool Versions: 
-// Description: Connects to the OTTER CPU to control the CPU and capture
-//              data on the memory bus.
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-////////////////////////////////////////////////////////////////////////////////////
+`timescale 1ps/1ps
 
 module uart (
     input clk,

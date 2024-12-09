@@ -1,23 +1,5 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: J. Callenes 
-// 
-// Create Date: 06/07/2018 05:03:50 PM
-// Design Name: 
-// Module Name: arithLogicUnit
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+`include "defs.svh"
 
 module alu(
     input [3:0] op,

@@ -1,94 +1,156 @@
 `timescale 1ns / 1ps
+`include "defs.svh"
 
 module csr (
     input clk,
-    input rst,
+    input rst_n,
 
-    input [1:0]  op,
-    input [11:0] addr,
-    input we,
-    input [31:0] wr_data,
-    
-    output logic [31:0] rd_data
+    // CSR Interface
+    input        csr_write,
+    input [1:0]  csr_op,
+    input [11:0] csr_addr,
+    input [31:0] csr_wr_data,
+    output logic [31:0] csr_rd_data,
+
+    // Trap Information
+    input [31:0] pc,
+    input [31:0] instruction,
+    input [31:0] misaligned_addr,
+
+    input trap_start,
+    input trap_finish,
+    input [31:0] trap_cause,
+    output logic [31:0] trap_vector,
+    output logic [31:0] interrupted_pc,
+
+    output interrupts_enabled
     );
 
-    // verilator lint_off UNUSED
-    enum logic [1:0] {
-        NOP   = 2'b00,
-        WRITE = 2'b01,
-        SET   = 2'b10, 
-        CLEAR = 2'b11
-    } csr_op_e;
-    // verilator lint_on UNUSED
-
-    typedef enum logic [11:0] {
-        MVENDORID = 12'hF11,
-        MARCHID   = 12'hF12,
-        MIMPID    = 12'hF13,
-        MHARTID   = 12'hF14,
-        MSTATUS   = 12'h300,
-        MISA      = 12'h301,
-        MIE       = 12'h304,
-        MTVEC     = 12'h305,
-        MEPC      = 12'h341
-    } mcsr_e;
-
-    // Machine-level CSRs
+    // Read-only CSRs
     logic [31:0] mvendorid = '0;
-    logic [31:0] marchid = '0;
-    logic [31:0] mimpid = '0;
-    logic [31:0] mhartid = '0;
-    logic [31:0] mstatus = '0;
-    logic [31:0] misa = 32'h40000100;
-    logic [31:0] mie = '0;
-    logic [31:0] mtvec = '0;
-    logic [31:0] mepc = '0;
+    logic [31:0] marchid   = '0;
+    logic [31:0] mimpid    = '0;
+    logic [31:0] mhartid   = '0;
 
-    // CSR read
+    // Setup write data
+    logic [31:0] s_wr_data;
     always_comb begin
-        unique case (addr)
-            MVENDORID: rd_data = mvendorid;
-            MARCHID:   rd_data = marchid;
-            MIMPID:    rd_data = mimpid;
-            MHARTID:   rd_data = mhartid;
-            MSTATUS:   rd_data = mstatus;
-            MISA:      rd_data = misa;
-            MIE:       rd_data = mie;
-            MTVEC:     rd_data = mtvec;
-            MEPC:      rd_data = mepc;
-            default:   rd_data = '0;
+        unique case (csr_op)
+            WRITE:   s_wr_data = csr_wr_data;
+            SET:     s_wr_data = csr_rd_data | csr_wr_data;
+            CLEAR:   s_wr_data = csr_rd_data & (~csr_wr_data);
+            default: s_wr_data = csr_wr_data;
         endcase
     end
 
-    // Setup write data (Write, Set, or Clear)
-    logic [31:0] wr_data_int;
-    always_comb begin
-        unique case (op)
-            WRITE: wr_data_int = wr_data;
-            SET:   wr_data_int = rd_data | wr_data;
-            CLEAR: wr_data_int = rd_data & (~wr_data);
-            default: ;
-        endcase
-    end
-
-    // CSR write
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            mstatus <= '0;
-            misa    <= 32'h40000100;
-            mie     <= '0;
-            mtvec   <= '0;
-            mepc    <= '0;
-        end else if (we) begin
-            unique case (addr)
-                MSTATUS: mstatus <= wr_data_int;
-                MISA:    misa    <= wr_data_int;
-                MIE:     mie     <= wr_data_int;
-                MTVEC:   mtvec   <= wr_data_int;
-                MEPC:    mepc    <= wr_data_int;
+    /*
+     * CSR Registers w/o Hardware Writes
+     */
+    logic [31:0] misa     = 32'h40000100;
+    logic [31:0] mtvec    = '0;
+    logic [31:0] mstatush = '0;
+    logic [31:0] mscratch = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            misa     <= 32'h40000100;
+            mtvec    <= '0;
+            mstatush <= '0;
+            mscratch <= '0;
+        end else if (csr_write) begin
+            unique case (csr_addr)
+                MISA:     misa     <= s_wr_data;
+                MTVEC:    mtvec    <= s_wr_data;
+                MSTATUSH: mstatush <= s_wr_data;
+                MSCRATCH: mscratch <= s_wr_data;
                 default: ;
             endcase
         end
     end
+
+    /*
+     * CSR Registers w/ Hardware Writes
+     */
+
+     // MSTATUS
+    logic [31:0] mstatus = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            mstatus <= '0;
+        else if (trap_start) begin // MIE <- 0 and MPIE <- MIE
+            mstatus[3] <= 0;
+            mstatus[7] <= mstatus[3];
+            mstatus[12:11] <= 2'b11;
+        end else if (trap_finish) begin // MIE <- MPIE and MPIE <- 0
+            mstatus[3] <= mstatus[7];
+            mstatus[7] <= 0;
+            mstatus[12:11] <= 2'b00;
+        end else if (csr_write && csr_addr == MSTATUS)
+            mstatus <= s_wr_data;
+    end
+
+    // MEPC
+    logic [31:0] mepc = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            mepc <= '0;
+        else if (trap_start)
+            mepc <= pc;
+        else if (csr_write && csr_addr == MEPC)
+            mepc <= { s_wr_data[31:2], 2'b00 };
+    end
+
+    // MCAUSE 
+    logic [31:0] mcause = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            mcause <= '0;
+        else if (trap_start)
+            mcause <= trap_cause;
+        else if (csr_write && csr_addr == MCAUSE)
+            mcause <= s_wr_data;
+    end
+
+    // MTVAL
+    logic [31:0] mtval = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            mtval <= '0;
+        else if (trap_start && !trap_cause[31]) begin
+            case (trap_cause[4:0])
+                ENV_BREAK:    mtval <= pc;
+                ILLEGAL_INST: mtval <= instruction;
+                INST_ADDR_MISALIGN, 
+                LOAD_ADDR_MISALIGN,
+                STORE_ADDR_MISALIGN: mtval <= misaligned_addr;
+                default: ;
+            endcase
+        end else if (csr_write && csr_addr == MTVAL)
+            mtval <= s_wr_data;
+    end
+
+    /*
+     * CSR Read MUX
+     */
+    always_comb begin
+        unique case (csr_addr)
+            MVENDORID: csr_rd_data = mvendorid;
+            MARCHID:   csr_rd_data = marchid;
+            MIMPID:    csr_rd_data = mimpid;
+            MHARTID:   csr_rd_data = mhartid;
+            MSTATUS:   csr_rd_data = mstatus;
+            MISA:      csr_rd_data = misa;
+            MTVEC:     csr_rd_data = mtvec;
+            MSTATUSH:  csr_rd_data = mstatush;
+            MSCRATCH:  csr_rd_data = mscratch;
+            MEPC:      csr_rd_data = { mepc[31:2], 2'b00 };
+            MCAUSE:    csr_rd_data = mcause;
+            MTVAL:     csr_rd_data = mtval;
+            default:   csr_rd_data = '0;
+        endcase
+    end
+
+    assign trap_vector = mtvec;
+    assign interrupts_enabled = mstatus[3];
+    assign interrupted_pc = mepc;
 
 endmodule

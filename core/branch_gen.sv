@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: M. Michilot
-// 
-// Create Date: 01/27/2019 08:37:11 AM
-// Design Name: Branch Condition Generator
-// Module Name: brn_gen
-// Project Name: OTTER CPU
-// Target Devices: N/A
-// Tool Versions: 
-// Description: Generates the conditional branch signal
-// 
-// Dependencies:
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module branch_gen
     (
