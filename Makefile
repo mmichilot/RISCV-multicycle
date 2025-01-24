@@ -1,5 +1,6 @@
-SIM_DIR = ./sim
+SIM_DIR    = ./sim
 RISCOF_DIR = ./riscof
+FPGA_DIR   = ./fpga
 
 .PHONY: default
 default: riscof
@@ -22,7 +23,17 @@ riscof: sim_binary
 
 	make -C $(RISCOF_DIR)
 
+.PHONY: fpga
+fpga: riscof
+	@echo "\n\
+	------------------------------------\n\
+	----- Building design for FPGA -----\n\
+	-------------------------------------\n"
+
+	make -C $(FPGA_DIR) all
+
 .PHONY: clean
 clean:
 	@make -C $(SIM_DIR) clean
 	@make -C $(RISCOF_DIR) clean
+	@make -C $(FPGA_DIR) clean
