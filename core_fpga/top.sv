@@ -5,51 +5,52 @@ module top
         input clk,
         input rst_n,
 
-        output logic data_read,
-        output logic data_write,
-        output logic data_sign,
-        output logic [1:0] data_size,
-        output logic [31:0] data_addr,
-        output logic [31:0] data_write_data,
-        output logic [31:0] data_read_data
+        output logic dmem_read,
+        output logic dmem_write,
+        output logic [1:0] dmem_size,
+        output logic [31:0] dmem_addr,
+        output logic [31:0] dmem_rdata,
+        output logic [31:0] dmem_wdata
     );
-    
+
     // Bus signals
-    logic s_inst_read;
-    logic [31:0] s_inst_addr;
-    logic [31:0] s_inst_data;
+    logic        s_imem_read;
+    logic [31:0] s_imem_addr;
+    logic [31:0] s_imem_rdata;
+    logic        s_imem_done;
 
     core core(
         .clk,
         .rst_n,
 
-        .inst_read(s_inst_read),
-        .inst_addr(s_inst_addr),
-        .inst_data(s_inst_data),
+        .imem_read(s_imem_read),
+        .imem_addr(s_imem_addr),
+        .imem_rdata(s_imem_rdata),
+        .imem_done(s_imem_done),
 
         .data_read,
         .data_write,
-        .data_sign,
         .data_size,
         .data_addr,
         .data_write_data,
         .data_read_data
     );
 
-    sram sram(
+    sram #(
+        .SIZE_BYTES(425_984)
+    ) sram (
         .clk,
-        
-        .read_A(s_inst_read),
-        .addr_A(s_inst_addr),
-        .data_A(s_inst_data),
+
+        .A_read_i(s_inst_read),
+        .A_addr_i(s_inst_addr),
+        .A_rdata_o(s_inst_data),
 
         .read_B(data_read),
         .write_B(data_write),
-        .sign_B(data_sign),
         .size_B(data_size),
         .addr_B(data_addr),
         .wr_data_B(data_write_data),
         .rd_data_B(data_read_data)
     );
-    
+
 endmodule

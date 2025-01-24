@@ -1,19 +1,20 @@
-PROJ=uart
+PROJ=multicycle
 TOP_MODULE=top
 
 # Specify hardware revision of your OrangeCrab: `r0.1` or `r0.2`
 VERSION:=r0.2
 
-# By default, we will read all verilog files (.v) in this directory.
-VERILOG_FILES=$(wildcard *.sv)
+CORE_FILES := $(wildcard ../core/*.sv)
+MEMORY_FILES := $(wildcard ../memory/*.sv)
+VERILOG_FILES := $(wildcard *.sv) $(CORE_FILES) $(MEMORY_FILES)
 
-INCLUDE_DIRS = ../bus ../core ../memory ../cpu
+INCLUDE_DIRS = ../core ../memory
 INCLUDE_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 
 RM         = rm -rf
 COPY       = cp -a
 PATH_SEP   = /
-	
+
 # We don't actually need to do anything to verilog files.
 # This explicitly empty recipe is merely referenced from
 # the %.ys recipe below. Since it depends on those files,
@@ -29,9 +30,9 @@ PATH_SEP   = /
 %.ys: $(VERILOG_FILES)
 	$(file >$@)
 	$(foreach V,$(VERILOG_FILES),$(file >>$@,read_verilog -sv $(INCLUDE_FLAGS) $V))
-	$(file >>$@,synth_ecp5 -top $(TOP_MODULE)) 
+	$(file >>$@,synth_ecp5 -top $(TOP_MODULE))
 	$(file >>$@,write_json "$(basename $@).json")
-	
+
 # Run the yosys script to synthasize the logic and netlist (in json format)
 # to provide for nextpnr-ecp5.
 %.json: %.ys
@@ -49,7 +50,7 @@ flash: $(PROJ).bit
 	openFPGALoader -d /dev/ttyUSB0 -f $(PROJ).bit
 
 clean:
-	$(RM) -f $(PROJ).bit $(PROJ)_out.config $(PROJ).json 
+	$(RM) -f $(PROJ).bit $(PROJ)_out.config $(PROJ).json
 
 all: flash
 
