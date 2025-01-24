@@ -23,16 +23,23 @@ VERILATOR_FLAGS += --trace-fst
 # Have Verilator build
 VERILATOR_FLAGS += --build
 
-VERILATOR_INPUT = -f input.vc tb_top.sv testbench.cpp
+# Add plusargs to scan for additional file extensions
+VERILATOR_FLAGS += +librescan +libext+.v+.sv+.vh+.svh
 
-# Directories
-SW_DIR = ../sw
+# Where to search for modules
+VERILATOR_FLAGS += $(addprefix -y , $(wildcard ../rtl/*))
+
+# Top level input files
+VERILATOR_INPUT = tb_top.sv testbench.cpp 
+
 
 default: build
 
+.PHONY: build
 build:
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
 
+.PHONY: clean
 clean:
-	-rm -rf obj_dir trace.fst* otter.signature
+	-rm -rf obj_dir
 	
