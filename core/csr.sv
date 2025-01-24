@@ -12,18 +12,26 @@ module csr (
     input [31:0] csr_wr_data,
     output logic [31:0] csr_rd_data,
 
-    // Trap Information
+    // Interrupts & Exceptions
+    input [31:0] interrupts,
+    input illegal_inst,
+    input inst_addr_misalign,
+    input load_addr_misalign,
+    input store_addr_misalign,
+    input env_call,
+    input env_break,
+
+    // Core Information
     input [31:0] pc,
     input [31:0] instruction,
     input [31:0] misaligned_addr,
 
+    // Trap Interface
+    output logic trap_pending,
     input trap_start,
     input trap_finish,
-    input [31:0] trap_cause,
     output logic [31:0] trap_vector,
-    output logic [31:0] interrupted_pc,
-
-    output interrupts_enabled
+    output logic [31:0] trap_return
     );
 
     // Read-only CSRs
@@ -99,7 +107,7 @@ module csr (
             mepc <= { s_wr_data[31:2], 2'b00 };
     end
 
-    // MCAUSE 
+    // MCAUSE
     logic [31:0] mcause = '0;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
@@ -119,13 +127,31 @@ module csr (
             case (trap_cause[4:0])
                 ENV_BREAK:    mtval <= pc;
                 ILLEGAL_INST: mtval <= instruction;
-                INST_ADDR_MISALIGN, 
+                INST_ADDR_MISALIGN,
                 LOAD_ADDR_MISALIGN,
                 STORE_ADDR_MISALIGN: mtval <= misaligned_addr;
                 default: ;
             endcase
         end else if (csr_write && csr_addr == MTVAL)
             mtval <= s_wr_data;
+    end
+
+    // MIP (read-only)
+    logic [31:0] mip = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            mip <= '0;
+        else
+            mip <= interrupts;
+    end
+
+    // MIE
+    logic [31:0] mie = '0;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            mie <= '0;
+        else if (csr_write && csr_addr == MIE)
+            mie <= s_wr_data;
     end
 
     /*
@@ -145,12 +171,49 @@ module csr (
             MEPC:      csr_rd_data = { mepc[31:2], 2'b00 };
             MCAUSE:    csr_rd_data = mcause;
             MTVAL:     csr_rd_data = mtval;
+            MIP:       csr_rd_data = mip;
+            MIE:       csr_rd_data = mie;
             default:   csr_rd_data = '0;
         endcase
     end
 
-    assign trap_vector = mtvec;
+    /*
+     * Trap Handling
+     */
+    logic interrupts_enabled, interrupt_pending, exception_pending;
     assign interrupts_enabled = mstatus[3];
-    assign interrupted_pc = mepc;
+    assign interrupt_pending = |(mip & mie) & interrupts_enabled;
+    assign exception_pending = illegal_inst | inst_addr_misalign | load_addr_misalign | store_addr_misalign | env_call | env_break;
+
+    // Determine exception code based on priority
+    // (External > Timer > Software > Exceptions)
+    logic [4:0] exception_code;
+    always_comb begin
+        exception_code = HARDWARE_ERROR; // Default to hardware error
+        if (interrupt_pending) begin
+            if (mip[11])     exception_code = EXTERNAL_INT;
+            else if (mip[7]) exception_code = TIMER_INT;
+            else if (mip[3]) exception_code = SOFTWARE_INT;
+        end else if (exception_pending) begin
+            if (illegal_inst)             exception_code = ILLEGAL_INST;
+            else if (inst_addr_misalign)  exception_code = INST_ADDR_MISALIGN;
+            else if (env_call)            exception_code = ENV_CALL;
+            else if (env_break)           exception_code = ENV_BREAK;
+            else if (load_addr_misalign)  exception_code = LOAD_ADDR_MISALIGN;
+            else if (store_addr_misalign) exception_code = STORE_ADDR_MISALIGN;
+        end
+    end
+
+    logic [31:0] trap_cause;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            trap_cause <= 32'(HARDWARE_ERROR);
+        else if (trap_pending)
+            trap_cause <= {interrupt_pending, 31'(exception_code)};
+    end
+
+    assign trap_vector = mtvec;
+    assign trap_return = mepc;
+    assign trap_pending = interrupt_pending | exception_pending;
 
 endmodule
