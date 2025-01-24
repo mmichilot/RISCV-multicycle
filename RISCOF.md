@@ -45,3 +45,29 @@
  - the one edge case is for SRA and SRAI, where func7 is used to distinguish between them since the immediate is only 5 bits
  - fix was to use {func7[5], func3} when func3 is either SRA or SRAI, otherwise the ALU op is {1'b0, func3} so that the immediate doesn't affect the
    resulting ALU op
+
+# Privilege Spec Updates
+All tests passing!
+Created additional modules:
+- clint.sv
+  - Main interface for interupts and exceptions
+  - Contains MIE and MIP CSRs, although this is going to be merged with the csr module
+  - Planned to house the memory-mapped timer and software interrupt registers
+- csr.sv
+  - Contains the minimal CSRs necessary for the privilege spec.
+
+Modified the following modules:
+- control_unit.sv
+  - Added a new state, TRAP, which will setup the core prior before entering a trap
+    - MEPC <- PC
+    - PC <- MTVEC
+    - disable global interrupts (MSTATUS)
+    - save exception code (MCAUSE)
+    - save cause of exception (MTVAL)
+- prog_cntr.sv
+  - Have PC start at address 0x8000_0000
+- decoder.sv
+  - When trap is started, set PC source to MTVEC
+  - When trap is finished, set PC source to MEPC
+  - Added separate PC source selection for JALR called LSB_ZERO
+    - As per spec, for a JALR instruction, the last bit is set to zero (2.5.1)
