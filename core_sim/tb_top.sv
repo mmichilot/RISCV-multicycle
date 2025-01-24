@@ -19,17 +19,18 @@ module top
     //       https://github.com/YosysHQ/yosys/issues/1053
 
     // Bus signals
-    logic s_inst_read;
-    logic [31:0] s_inst_addr;
-    logic [31:0] s_inst_data;
+    logic        s_imem_read;
+    logic [31:0] s_imem_addr;
+    logic [31:0] s_imem_rdata;
+    logic        s_imem_ready;
 
-    logic s_data_read;
-    logic s_data_write;
-    logic s_data_sign;
-    logic [1:0] s_data_size;
-    logic [31:0] s_data_addr;
-    logic [31:0] s_data_write_data;
-    logic [31:0] s_data_read_data;
+    logic        s_dmem_read;
+    logic        s_dmem_write;
+    logic [3:0]  s_dmem_byte_en;
+    logic [31:0] s_dmem_addr;
+    logic [31:0] s_dmem_wdata;
+    logic [31:0] s_dmem_rdata;
+    logic        s_dmem_ready;
 
     // Interrupts
     logic [31:0] interrupts;
@@ -38,42 +39,39 @@ module top
         .clk,
         .rst_n,
 
-        .inst_read(s_inst_read),
-        .inst_addr(s_inst_addr),
-        .inst_data(s_inst_data),
+        .imem_read(s_imem_read),
+        .imem_addr(s_imem_addr),
+        .imem_rdata(s_imem_rdata),
+        .imem_ready(s_imem_ready),
 
-        .data_read(s_data_read),
-        .data_write(s_data_write),
-        .data_sign(s_data_sign),
-        .data_size(s_data_size),
-        .data_addr(s_data_addr),
-        .data_write_data(s_data_write_data),
-        .data_read_data(s_data_read_data),
+        .dmem_read(s_dmem_read),
+        .dmem_write(s_dmem_write),
+        .dmem_byte_en(s_dmem_byte_en),
+        .dmem_addr(s_dmem_addr),
+        .dmem_wdata(s_dmem_wdata),
+        .dmem_rdata(s_dmem_rdata),
+        .dmem_ready(s_dmem_ready),
 
         .interrupts
     );
 
-
-    logic [31:0] sram_addr_A, sram_addr_B;
-    assign sram_addr_A = {1'b0, s_inst_addr[30:0]};
-    assign sram_addr_B = {1'b0, s_data_addr[30:0]};
-
     sram #(
-        .ADDR_WIDTH (21)
+        .SIZE_BYTES(2_097_152)
     ) sram (
         .clk,
-        
-        .read_A(s_inst_read),
-        .addr_A(sram_addr_A),
-        .data_A(s_inst_data),
 
-        .read_B(s_data_read),
-        .write_B(s_data_write),
-        .sign_B(s_data_sign),
-        .size_B(s_data_size),
-        .addr_B(sram_addr_B),
-        .wr_data_B(s_data_write_data),
-        .rd_data_B(s_data_read_data)
+        .A_read(s_imem_read),
+        .A_addr(s_imem_addr),
+        .A_rdata(s_imem_rdata),
+        .A_ready(s_imem_ready),
+
+        .B_read(s_dmem_read),
+        .B_write(s_dmem_write),
+        .B_byte_en(s_dmem_byte_en),
+        .B_addr(s_dmem_addr),
+        .B_wdata(s_dmem_wdata),
+        .B_rdata(s_dmem_rdata),
+        .B_ready(s_dmem_ready)
     );
 
     initial begin
@@ -90,14 +88,14 @@ module top
         $display();
     end
 
-    
+
 
     logic mailbox_write;
     /* verilator lint_off UNUSED */
     logic [31:0] mailbox_data;
     /* verilator lint_on UNUSED */
-    assign mailbox_write = s_data_write && (s_data_addr == mem_mailbox);
-    assign mailbox_data  = s_data_write_data;
+    assign mailbox_write = s_dmem_write && (s_dmem_addr == mem_mailbox);
+    assign mailbox_data  = s_dmem_wdata;
 
     parameter MAX_CYCLE_COUNT = 100_000;
 
@@ -105,15 +103,12 @@ module top
     always @(negedge clk) begin
         cycleCnt <= cycleCnt + 1;
 
-        if (s_inst_read) 
-            $display("inst_addr: 0x%08X | inst: 0x%08X", s_inst_addr, sram.mem[s_inst_addr >> 2]);
-
         if (cycleCnt == MAX_CYCLE_COUNT) begin
-            $display("Max cycle count reached, terminating..."); 
+            $display("Max cycle count reached, terminating...");
             dump_signature();
             $finish;
         end
-        
+
         if (mailbox_write && (mailbox_data[7:0] == 8'hFF || mailbox_data[7:0] == 8'h01)) begin
             $display("SIMULATION FINISHED");
             dump_signature();
@@ -123,9 +118,9 @@ module top
 
     task dump_signature ();
         integer fp, i, sig_start, sig_end;
-        
+
         fp = $fopen("otter.signature", "w");
-        
+
         sig_start = mem_signature_begin / 4;
         sig_end = mem_signature_end / 4;
         for (i = sig_start; i < sig_end; i++) begin
@@ -133,6 +128,16 @@ module top
         end
 
         $fclose(fp);
+    endtask
+
+    task dump_memory();
+        integer fp, i, mem_start, mem_end;
+
+        fp = $fopen("mem.dump", "w");
+        mem_start = 0;
+        mem_end = 2_097_152 / 4;
+        for (i = mem_start; i < mem_end; i = i + 1)
+            $fwrite(fp, "%08X\n", sram.mem[i]);
     endtask
 
 endmodule

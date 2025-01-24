@@ -2,42 +2,44 @@
 `include "defs.svh"
 
 module control_unit (
-    input clk,
-    input rst_n,
-    // verilator lint_off UNUSED
-    input [31:0] inst,
-    // verilator lint_on UNUSED
+        input clk,
+        input rst_n,
+        // verilator lint_off UNUSED
+        input [31:0] inst,
+        // verilator lint_on UNUSED
 
-    input take_branch,
+        input take_branch,
 
-    // Trap signals
-    input trap_pending,
-    input [31:0] trap_cause,
-    output logic trap_start,
-    output logic trap_finish,
+        // Trap signals
+        input trap_pending,
+        output logic trap_start,
+        output logic trap_finish,
 
-    // Exceptions
-    output logic illegal_inst,
+        // Exceptions
+        output logic illegal_inst,
 
-    input [31:0] inst_addr,
-    output logic inst_addr_misalign,
-    
-    input [31:0] data_addr,
-    input [1:0]  data_size,
-    input data_addr_misalign,
-    output logic load_addr_misalign,
-    output logic store_addr_misalign,
+        input [31:0] imem_addr,
+        output logic inst_addr_misalign,
 
-    output logic env_call,
-    output logic env_break,
+        input [31:0] dmem_addr,
+        input [1:0]  dmem_size,
+        input        dmem_addr_misalign,
+        output logic load_addr_misalign,
+        output logic store_addr_misalign,
 
-    // CPU State signals
-    output logic pc_write,
-    output logic inst_read,
-    output logic data_read,
-    output logic data_write,
-    output logic reg_write,
-    output logic csr_write
+        output logic env_call,
+        output logic env_break,
+
+        // Control Signals
+        output logic pc_write,
+        output logic inst_read,
+        output logic data_read,
+        output logic data_write,
+        output logic reg_write,
+        output logic csr_write,
+
+        input imem_ready,
+        input dmem_ready
     );
 
     logic [6:0] opcode;
@@ -48,18 +50,18 @@ module control_unit (
 
     logic [11:0] func12;
     assign func12 = inst[31:20];
-    
-    typedef enum logic [2:0] {FETCH, EXECUTE, WB, HALT, TRAP} state_e;
+
+    typedef enum logic [1:0] {FETCH, EXECUTE, WB, TRAP} state_e;
     state_e current_state, next_state;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n)            
+        if (!rst_n)
             current_state <= FETCH;
-        else if (trap_pending && current_state != TRAP) 
+        else if (trap_pending && current_state != TRAP)
             current_state <= TRAP;
         else
             current_state <= next_state;
-    end 
+    end
 
     // Internal signals for CPU state
     logic s_pc_write, s_data_write, s_reg_write, s_csr_write;
@@ -72,7 +74,7 @@ module control_unit (
         s_data_write = 0;
         s_reg_write  = 0;
         s_csr_write  = 0;
-        
+
         trap_start = 0;
         trap_finish = 0;
 
@@ -98,32 +100,32 @@ module control_unit (
                     JAL: begin
                         s_pc_write = 1;
                         s_reg_write = 1;
-                        inst_addr_misalign = inst_addr[1:0] != 2'b00;
+                        inst_addr_misalign = imem_addr[1:0] != 2'b00;
                     end
 
                     JALR: begin
                         s_pc_write = 1;
                         s_reg_write = 1;
-                        inst_addr_misalign = inst_addr[1] != 0;
+                        inst_addr_misalign = imem_addr[1] != 0;
 
                     end
 
                     BRANCH: begin
                         s_pc_write = 1;
-                        inst_addr_misalign = inst_addr[1:0] != 2'b00 && take_branch;
+                        inst_addr_misalign = imem_addr[1:0] != 2'b00 && take_branch;
                     end
 
                     FENCE: s_pc_write = 1;
-                    
-                    LOAD: begin 
+
+                    LOAD: begin
                         data_read = 1;
-                        load_addr_misalign = data_addr_misalign;
+                        load_addr_misalign = dmem_addr_misalign;
                     end
-                    
+
                     STORE: begin
-                        s_pc_write   = 1;
+                        if (dmem_ready) s_pc_write = 1; // Only update PC when write has completed
                         s_data_write = 1;
-                        store_addr_misalign = data_addr_misalign;
+                        store_addr_misalign = dmem_addr_misalign;
                     end
 
                     SYSTEM: begin
@@ -136,7 +138,7 @@ module control_unit (
                                 MRET:    trap_finish  = 1;
                                 default: illegal_inst = 1;
                             endcase
-                        
+
                         // CSR
                         end else begin
                             s_pc_write  = 1;
@@ -154,16 +156,6 @@ module control_unit (
             WB: begin
                 s_reg_write = 1;
                 s_pc_write = 1;
-            end
-
-            // Disable all control signals when halted
-            HALT: begin
-                inst_read  = 0;
-                data_read  = 0;
-                s_pc_write   = 0;
-                s_data_write = 0;
-                s_reg_write  = 0;
-                s_csr_write  = 0;
             end
 
             // Initiate trap handling
@@ -189,25 +181,27 @@ module control_unit (
         end
     end
 
-    always_comb begin : next_state_logic        
+    always_comb begin : next_state_logic
         unique case (current_state)
-            FETCH: next_state = EXECUTE;
+            FETCH: begin
+                next_state = imem_ready ? EXECUTE : FETCH;
+            end
 
             EXECUTE: begin
-                if (opcode == LOAD) 
-                    next_state = WB;
-                else 
+                if (opcode == LOAD)
+                    next_state = dmem_ready ? WB : EXECUTE;
+                else if (opcode == STORE)
+                    next_state = dmem_ready ? FETCH : EXECUTE;
+                else
                     next_state = FETCH;
             end
 
             WB: next_state = FETCH;
-            
-            HALT: next_state = HALT;
-            
+
             TRAP: next_state = FETCH;
 
-            default: next_state = HALT;
+            default: next_state = FETCH;
         endcase
     end
-    
+
 endmodule
