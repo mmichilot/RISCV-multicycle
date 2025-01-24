@@ -1,14 +1,18 @@
 PROJ=multicycle
 TOP_MODULE=top
 
+# Directories
+RTL_DIR     = ../rtl
+MODULE_DIRS = $(wildcard $(RTL_DIR)/*)
+
 # Specify hardware revision of your OrangeCrab: `r0.1` or `r0.2`
 VERSION:=r0.2
 
-CORE_FILES := $(wildcard ../core/*.sv)
-MEMORY_FILES := $(wildcard ../memory/*.sv)
-VERILOG_FILES := $(wildcard *.sv) $(CORE_FILES) $(MEMORY_FILES)
 
-INCLUDE_DIRS = ../core ../memory
+VERILOG_FILES += $(foreach dir,$(MODULE_DIRS),$(wildcard $(dir)/*.sv))
+VERILOG_FILES += $(wildcard *.sv)
+
+INCLUDE_DIRS = $(MODULE_DIRS)
 INCLUDE_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 
 RM         = rm -rf
