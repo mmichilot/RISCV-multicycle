@@ -78,7 +78,7 @@ module decoder(
     always_comb begin
         if (trap_start)       pc_src = CSR_MTVEC;
         else if (trap_finish) pc_src = CSR_MEPC;
-        else begin 
+        else begin
             unique case(opcode)
                 LUI, AUIPC, OP_IMM, OP, LOAD, STORE: pc_src = PC_PLUS_4;
                 JAL:  pc_src = ALU_OUT;
