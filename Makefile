@@ -23,6 +23,16 @@ riscof: sim_binary
 
 	make -C $(RISCOF_DIR)
 
+ifdef SKIP_TEST
+.PHONY: fpga
+fpga: 
+	@echo "\n\
+	------------------------------------\n\
+	----- Building design for FPGA -----\n\
+	-------------------------------------\n"
+
+	make -C $(FPGA_DIR) all
+else
 .PHONY: fpga
 fpga: riscof
 	@echo "\n\
@@ -31,6 +41,7 @@ fpga: riscof
 	-------------------------------------\n"
 
 	make -C $(FPGA_DIR) all
+endif
 
 .PHONY: clean
 clean:
