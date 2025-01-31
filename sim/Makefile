@@ -27,11 +27,10 @@ VERILATOR_FLAGS += --build
 VERILATOR_FLAGS += +librescan +libext+.v+.sv+.vh+.svh
 
 # Where to search for modules
-VERILATOR_FLAGS += $(addprefix -y , $(wildcard ../rtl/*))
+VERILATOR_FLAGS += $(addprefix -y , ../rtl $(wildcard ../rtl/*))
 
 # Top level input files
-VERILATOR_INPUT = tb_top.sv testbench.cpp 
-
+VERILATOR_INPUT = tb_top.sv testbench.cpp
 
 default: build
 
