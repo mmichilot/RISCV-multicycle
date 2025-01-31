@@ -1,5 +1,5 @@
 PROJ=multicycle
-TOP_MODULE=top
+TOP_MODULE=fpga_top
 
 # Directories
 RTL_DIR     = ../rtl
@@ -8,7 +8,7 @@ MODULE_DIRS = $(wildcard $(RTL_DIR)/*)
 # Specify hardware revision of your OrangeCrab: `r0.1` or `r0.2`
 VERSION:=r0.2
 
-
+VERILOG_FILES += $(wildcard $(RTL_DIR)/*.sv)
 VERILOG_FILES += $(foreach dir,$(MODULE_DIRS),$(wildcard $(dir)/*.sv))
 VERILOG_FILES += $(wildcard *.sv)
 
