@@ -64,12 +64,12 @@ module control_unit (
     end
 
     // Internal signals for CPU state
-    logic s_pc_write, s_data_write, s_reg_write, s_csr_write;
+    logic s_pc_write, s_data_write, s_data_read, s_reg_write, s_csr_write;
 
     always_comb begin : output_logic
         // Default values
         inst_read  = 0;
-        data_read  = 0;
+        s_data_read  = 0;
         s_pc_write   = 0;
         s_data_write = 0;
         s_reg_write  = 0;
@@ -118,13 +118,13 @@ module control_unit (
                     FENCE: s_pc_write = 1;
 
                     LOAD: begin
-                        data_read = 1;
+                        s_data_read = 1;
                         load_addr_misalign = dmem_addr_misalign;
                     end
 
                     STORE: begin
-                        if (dmem_ready) s_pc_write = 1; // Only update PC when write has completed
                         s_data_write = 1;
+                        s_pc_write = dmem_ready; // Only update PC when write has completed
                         store_addr_misalign = dmem_addr_misalign;
                     end
 
@@ -172,11 +172,13 @@ module control_unit (
             pc_write   = 0;
             reg_write  = 0;
             data_write = 0;
+            data_read  = 0;
             csr_write  = 0;
         end else begin
             pc_write   = s_pc_write;
             reg_write  = s_reg_write;
             data_write = s_data_write;
+            data_read  = s_data_read;
             csr_write  = s_csr_write;
         end
     end
