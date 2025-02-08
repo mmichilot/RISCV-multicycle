@@ -12,33 +12,14 @@ module fpga_top
         input clk,
         input rst_n,
 
-        input logic external_int,
-
-        // scope data memory bus
-        output logic        probe_cyc,
-        output logic        probe_stb,
-        output logic        probe_we,
-        output logic [3:0]  probe_sel,
-        output logic [31:0] probe_adr,
-        output logic [31:0] probe_dat_i,
-        output logic [31:0] probe_dat_o,
-        output logic        probe_ack
+        input logic external_int
     );
 
     top soc (
         .clk,
         .rst_n,
 
-        .external_int,
-
-        .probe_cyc,
-        .probe_stb,
-        .probe_we,
-        .probe_sel,
-        .probe_adr,
-        .probe_dat_i,
-        .probe_dat_o,
-        .probe_ack
+        .external_int
     );
 
 endmodule
