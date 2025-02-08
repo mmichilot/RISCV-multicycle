@@ -52,8 +52,8 @@ module tb_top
     /* verilator lint_off UNUSED */
     logic [31:0] mailbox_data;
     /* verilator lint_on UNUSED */
-    assign mailbox_write = probe_cyc && probe_stb && probe_we && (probe_adr == mem_mailbox);
-    assign mailbox_data  = probe_dat_o;
+    assign mailbox_write = top.wb_cyc_o & top.wb_stb_o & top.wb_we_o & (top.wb_adr_o == mem_mailbox);
+    assign mailbox_data  = top.wb_dat_o;
 
     parameter MAX_CYCLE_COUNT = 500_000;
 

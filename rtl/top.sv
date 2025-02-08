@@ -27,37 +27,26 @@ module top #(
     assign interrupts[7]  = timer_int;
     assign interrupts[3]  = software_int;
 
-    logic imem_cyc_o, imem_stb_o, imem_stall_i, imem_we_o, imem_ack_i;
-    logic [3:0] imem_sel_o;
-    logic [31:0] imem_adr_o, imem_dat_i, imem_dat_o;
-
-    logic dmem_cyc_o, dmem_stb_o, dmem_stall_i, dmem_we_o, dmem_ack_i;
-    logic [3:0] dmem_sel_o;
-    logic [31:0] dmem_adr_o, dmem_dat_i, dmem_dat_o;
-
-    wb_core core (
+    /*
+     * RISC-V Core
+     */
+    logic wb_cyc_o, wb_stb_o, wb_we_o, wb_ack_i, wb_stall_i;
+    logic [3:0] wb_sel_o;
+    logic [31:0] wb_adr_o, wb_dat_i, wb_dat_o;
+    assign wb_stall_i = 0; // Temporary
+    core core(
         .clk,
         .rst_n,
 
-        .imem_cyc_o,
-        .imem_stb_o,
-        .imem_stall_i,
-        .imem_we_o,
-        .imem_adr_o,
-        .imem_sel_o,
-        .imem_dat_o,
-        .imem_dat_i,
-        .imem_ack_i,
-
-        .dmem_cyc_o,
-        .dmem_stb_o,
-        .dmem_stall_i,
-        .dmem_we_o,
-        .dmem_adr_o,
-        .dmem_sel_o,
-        .dmem_dat_o,
-        .dmem_dat_i,
-        .dmem_ack_i,
+        .wb_cyc_o,
+        .wb_stb_o,
+        .wb_stall_i,
+        .wb_ack_i,
+        .wb_we_o,
+        .wb_sel_o,
+        .wb_adr_o,
+        .wb_dat_o,
+        .wb_dat_i,
 
         .interrupts
     );
