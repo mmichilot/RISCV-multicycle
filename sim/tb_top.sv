@@ -9,9 +9,10 @@ module tb_top
         input bit [31:0] mem_signature_begin,
         input bit [31:0] mem_signature_end,
         input bit [31:0] mem_mailbox,
-        input string     mem_file
+        input string     mem_file,
+        input string     boot_file
     );
-    
+
     top #(
         .SRAM_SIZE(2_097_152)
     ) top (
@@ -23,6 +24,10 @@ module tb_top
 
     initial begin
         $display("SIMULATION START");
+
+        // Load boot file into rom
+        $display("\nLoading boot file: %s", boot_file);
+        $readmemh(boot_file, top.rom.mem);
 
         // Load memory into sram
         $display("\nLoading memory file: %s", mem_file);
@@ -42,7 +47,7 @@ module tb_top
     assign mailbox_write = top.wb_cyc_o & top.wb_stb_o & top.wb_we_o & (top.wb_adr_o == mem_mailbox);
     assign mailbox_data  = top.wb_dat_o;
 
-    parameter MAX_CYCLE_COUNT = 500_000;
+    parameter MAX_CYCLE_COUNT = 300_000;
 
     int cycleCnt = 0;
     always @(negedge clk) begin
