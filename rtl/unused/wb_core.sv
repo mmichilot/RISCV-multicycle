@@ -57,9 +57,7 @@ module wb_core (
         .interrupts
     );
 
-    wb_adapter #(
-        .RDATA_REG(1)
-    ) imem_adapter (
+    wb_adapter imem_adapter (
         .clk_i(clk),
         .rst_i(~rst_n),
 
@@ -82,9 +80,7 @@ module wb_core (
         .wb_ack_i   (imem_ack_i)
     );
 
-    wb_adapter #(
-        .RDATA_REG(1)
-    ) dmem_adapter (
+    wb_adapter dmem_adapter (
         .clk_i(clk),
         .rst_i(~rst_n),
 
