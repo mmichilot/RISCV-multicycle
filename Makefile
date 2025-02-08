@@ -1,9 +1,19 @@
 SIM_DIR    = ./sim
 RISCOF_DIR = ./riscof
 FPGA_DIR   = ./fpga
+BOOT_DIR   = ./boot
 
 .PHONY: default
 default: riscof
+
+.PHONY: boot_rom
+boot_rom:
+	@echo "\n\
+	-----------------------------\n\
+	----- Building boot ROM -----\n\
+	-----------------------------\n"
+
+	make -C $(BOOT_DIR)
 
 .PHONY: sim_binary
 sim_binary:
@@ -25,7 +35,7 @@ riscof: sim_binary
 
 ifdef SKIP_TEST
 .PHONY: fpga
-fpga: 
+fpga:
 	@echo "\n\
 	------------------------------------\n\
 	----- Building design for FPGA -----\n\
