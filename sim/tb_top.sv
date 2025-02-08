@@ -11,10 +11,6 @@ module tb_top
         input bit [31:0] mem_mailbox,
         input string     mem_file
     );
-
-    logic probe_cyc, probe_stb, probe_we, probe_ack;
-    logic [3:0] probe_sel;
-    logic [31:0] probe_adr, probe_dat_i, probe_dat_o;
     
     top #(
         .SRAM_SIZE(2_097_152)
@@ -22,16 +18,7 @@ module tb_top
         .clk,
         .rst_n,
 
-        .external_int(1'b0),
-
-        .probe_cyc,
-        .probe_stb,
-        .probe_we,
-        .probe_sel,
-        .probe_adr,
-        .probe_dat_i,
-        .probe_dat_o,
-        .probe_ack
+        .external_int(1'b0)
     );
 
     initial begin
