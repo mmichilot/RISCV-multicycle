@@ -5,28 +5,20 @@ module core(
         input clk,
         input rst_n,
 
-        // Instruction Memory Interface
-        output logic [31:0] imem_addr,
-        output logic        imem_read,
-        input  logic [31:0] imem_rdata,
-        input  logic        imem_ready,
-
-        // Data Memory Interface
-        output logic        dmem_read,
-        output logic        dmem_write,
-        output logic [3:0]  dmem_byte_en,
-        output logic [31:0] dmem_addr,
-        output logic [31:0] dmem_wdata,
-        input  logic [31:0] dmem_rdata,
-        input  logic        dmem_ready,
+        // Wishbone interface
+        output logic        wb_cyc_o,
+        output logic        wb_stb_o,
+        input  logic        wb_stall_i,
+        input  logic        wb_ack_i,
+        output logic        wb_we_o,
+        output logic [3:0]  wb_sel_o,
+        output logic [31:0] wb_adr_o,
+        output logic [31:0] wb_dat_o,
+        input  logic [31:0] wb_dat_i,
 
         // Interrupt Interface
         input logic [31:0] interrupts
     );
-
-    // Convenient wires
-    logic [31:0] inst;
-    assign inst = imem_rdata;
 
     logic [4:0] rs1, rs2, rd;
     assign rs1 = inst[19:15];
@@ -43,9 +35,10 @@ module core(
     assign func7 = inst[31:25];
 
     // Control unit
+    logic imem_read, dmem_read, dmem_write, imem_ready, dmem_ready;
     logic pc_write, reg_write, csr_write;
     logic illegal_inst, inst_addr_misalign, load_addr_misalign, store_addr_misalign, env_call, env_break;
-    logic trap_start, trap_finish;
+    logic trap_finish;
     control_unit control_unit (
     	.clk,
         .rst_n,
@@ -55,13 +48,9 @@ module core(
 
         // Trap Handling
         .trap_pending,
-        .trap_start,
         .trap_finish,
 
-        .imem_addr(alu_out),
-        .dmem_addr,
-        .dmem_size,
-        .dmem_addr_misalign,
+        .mem_addr(alu_out),
 
         // Exceptions
         .illegal_inst,
@@ -72,9 +61,9 @@ module core(
         .env_break,
 
         .pc_write,
-        .inst_read(imem_read),
-        .data_read(dmem_read),
-        .data_write(dmem_write),
+        .imem_read,
+        .dmem_read,
+        .dmem_write,
         .reg_write,
         .csr_write,
 
@@ -93,7 +82,7 @@ module core(
         .func7,
 
         .take_branch,
-        .trap_start,
+        .trap_pending,
         .trap_finish,
 
         .immed_type,
@@ -111,8 +100,8 @@ module core(
             PC_PLUS_4: pc_data = next_pc;
             ALU_OUT:   pc_data = alu_out;
             LSB_ZERO:  pc_data = { alu_out[31:1], 1'b0 };
-            CSR_MTVEC: pc_data = trap_vector;
-            CSR_MEPC:  pc_data = trap_return;
+            CSR_MTVEC: pc_data = mtvec;
+            CSR_MEPC:  pc_data = mepc;
             default:   pc_data = next_pc;
         endcase
     end
@@ -122,7 +111,7 @@ module core(
     prog_cntr prog_cntr (
         .clk,
         .rst_n,
-        .ld(pc_write),
+        .ld(pc_write | trap_pending),
         .data(pc_data),
         .count(pc_out)
     );
@@ -153,8 +142,8 @@ module core(
         unique case(reg_src)
             NEXT_PC: reg_data = next_pc;
             ALU:     reg_data = alu_out;
-            MEM:     reg_data = s_dmem_rdata;
-            CSR:     reg_data = csr_rd_data;
+            MEM:     reg_data = data;
+            CSR:     reg_data = csr_rdata;
         endcase
     end
 
@@ -200,31 +189,24 @@ module core(
         .out(alu_out)
     );
 
-    /*
-     * CONTROL & STATUS REGISTERS
-     */
 
-    // CSR Interface
-    logic [1:0] csr_op;
-    logic [11:0] csr_addr;
-    logic [31:0] csr_rd_data, csr_wr_data;
-    assign csr_wr_data = func3[2] ? immed : rs1_data;
-    assign csr_addr = inst[31:20];
-    assign csr_op = func3[1:0];
-
-    // Trap Interface
+    /////////////////////////////////////////////////////////
+    //   ___       _                             _         //
+    //  |_ _|_ __ | |_ ___ _ __ _ __ _   _ _ __ | |_ ___   //
+    //   | || '_ \| __/ _ \ '__| '__| | | | '_ \| __/ __|  //
+    //   | || | | | ||  __/ |  | |  | |_| | |_) | |_\__ \  //
+    //  |___|_| |_|\__\___|_|  |_|   \__,_| .__/ \__|___/  //
+    //                                    |_|              //
+    /////////////////////////////////////////////////////////
     logic trap_pending;
-    logic [31:0] trap_vector, trap_return;
-
-    csr csr (
+    logic [31:0] mip, trap_cause;
+    irq_controller irq_controller (
         .clk,
         .rst_n,
 
-        .csr_write,
-        .csr_op,
-        .csr_addr,
-        .csr_wr_data,
-        .csr_rd_data,
+        .irq_en,
+        .mie,
+        .mip,
 
         .interrupts,
         .illegal_inst,
@@ -234,76 +216,84 @@ module core(
         .env_call,
         .env_break,
 
+        .trap_pending,
+        .trap_cause
+    );
+
+
+    ///////////////////////////////
+    //    ____ ____  ____        //
+    //   / ___/ ___||  _ \ ___   //
+    //  | |   \___ \| |_) / __|  //
+    //  | |___ ___) |  _ <\__ \  //
+    //   \____|____/|_| \_\___/  //
+    ///////////////////////////////
+    logic irq_en;
+    logic [31:0] csr_rdata, mie, mtvec, mepc;
+    csr csr (
+        .clk,
+        .rst_n,
+
+        .csr_we    (csr_write),
+        .csr_op    (func3[1:0]),
+        .csr_reg   (inst[31:20]),
+        .csr_wdata (func3[2] ? immed : rs1_data),
+        .csr_rdata,
+
+
         .pc(pc_out),
         .instruction(inst),
         .misaligned_addr(alu_out),
 
+        .mie,
+        .irq_en,
+
+        .mip,
+        .trap_cause,
         .trap_pending,
-        .trap_start,
         .trap_finish,
-        .trap_vector,
-        .trap_return
+
+        .mtvec,
+        .mepc
     );
 
-    /*
-     * MEMORY INTERFACE
-     */
 
-    // Instruction interface
-    assign imem_addr  = pc_out;
+    ////////////////////////////////////////////////
+    //   __  __                                   //
+    //  |  \/  | ___ _ __ ___   ___  _ __ _   _   //
+    //  | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | |  //
+    //  | |  | |  __/ | | | | | (_) | |  | |_| |  //
+    //  |_|  |_|\___|_| |_| |_|\___/|_|   \__, |  //
+    //                                    |___/   //
+    ////////////////////////////////////////////////
+    logic [31:0] inst, data;
+    memory memory(
+        .clk_i       (clk),
+        .rst_i       (~rst_n),
 
-    // Data Interface
-    logic [1:0] dmem_size;
-    assign dmem_size = inst[13:12];
-    assign dmem_addr = alu_out;
+        .imem_read,
+        .imem_ready,
+        .imem_addr   (pc_out),
+        .instruction (inst),
 
-    // Misaligned Data Memory Address
-    logic dmem_addr_misalign;
-    assign dmem_addr_misalign = (dmem_size == WORD && |dmem_addr[1:0]) || (dmem_size == HALF && dmem_addr[0]);
+        .dmem_read,
+        .dmem_write,
+        .dmem_ready,
+        .dmem_size   (inst[13:12]),
+        .dmem_sign   (inst[14]),
+        .dmem_addr   (alu_out),
+        .dmem_wdata  (rs2_data),
+        .data,
 
-    // Align incoming read data
-    logic data_sign;
-    assign data_sign = inst[14];
-    logic [31:0] s_dmem_rdata;
-
-    always_comb begin
-        case(data_sign)
-            SIGNED: begin
-                case(dmem_size)
-                    BYTE:    s_dmem_rdata = 32'(signed'(dmem_rdata[8*dmem_addr[1:0] +: 8]));
-                    HALF:    s_dmem_rdata = 32'(signed'(dmem_rdata[8*dmem_addr[1:0] +: 16]));
-                    default: s_dmem_rdata = dmem_rdata;
-                endcase
-            end
-
-            UNSIGNED: begin
-                case (dmem_size)
-                    BYTE:    s_dmem_rdata = 32'(dmem_rdata[8*dmem_addr[1:0] +: 8]);
-                    HALF:    s_dmem_rdata = 32'(dmem_rdata[8*dmem_addr[1:0] +: 16]);
-                    default: s_dmem_rdata = dmem_rdata;
-                endcase
-            end
-        endcase
-    end
-
-    // Convert size to byte enable
-    always_comb begin
-        case (dmem_size)
-            BYTE:    dmem_byte_en = (4'b0001 << dmem_addr[1:0]);
-            HALF:    dmem_byte_en = (4'b0011 << dmem_addr[1:0]);
-            WORD:    dmem_byte_en = 4'b1111;
-            default: dmem_byte_en = 4'b0000;
-        endcase
-    end
-
-    // Setup write data
-    always_comb begin
-        case (dmem_size)
-            BYTE:    dmem_wdata = rs2_data << (8 * dmem_addr[1:0]);
-            HALF:    dmem_wdata = rs2_data << (16 * dmem_addr[1]);
-            WORD:    dmem_wdata = rs2_data;
-            default: dmem_wdata = rs2_data;
-        endcase
-    end
+        .wb_cyc_o,
+        .wb_stb_o,
+        .wb_stall_i,
+        .wb_ack_i,
+        .wb_we_o,
+        .wb_sel_o,
+        .wb_adr_o,
+        .wb_dat_o,
+        .wb_dat_i
+    );
 
 endmodule

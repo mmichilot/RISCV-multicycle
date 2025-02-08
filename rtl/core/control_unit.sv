@@ -12,18 +12,13 @@ module control_unit (
 
         // Trap signals
         input trap_pending,
-        output logic trap_start,
         output logic trap_finish,
 
         // Exceptions
         output logic illegal_inst,
 
-        input [31:0] imem_addr,
+        input [31:0] mem_addr,
         output logic inst_addr_misalign,
-
-        input [31:0] dmem_addr,
-        input [1:0]  dmem_size,
-        input        dmem_addr_misalign,
         output logic load_addr_misalign,
         output logic store_addr_misalign,
 
@@ -32,9 +27,9 @@ module control_unit (
 
         // Control Signals
         output logic pc_write,
-        output logic inst_read,
-        output logic data_read,
-        output logic data_write,
+        output logic imem_read,
+        output logic dmem_read,
+        output logic dmem_write,
         output logic reg_write,
         output logic csr_write,
 
@@ -51,31 +46,30 @@ module control_unit (
     logic [11:0] func12;
     assign func12 = inst[31:20];
 
-    typedef enum logic [1:0] {FETCH, EXECUTE, WB, TRAP} state_e;
+    typedef enum logic [1:0] {FETCH, EXECUTE, WB} state_e;
     state_e current_state, next_state;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
             current_state <= FETCH;
-        else if (trap_pending && current_state != TRAP)
-            current_state <= TRAP;
+        else if (trap_pending)
+            current_state <= FETCH;
         else
             current_state <= next_state;
     end
 
     // Internal signals for CPU state
-    logic s_pc_write, s_data_write, s_data_read, s_reg_write, s_csr_write;
+    logic s_pc_write, s_imem_read, s_dmem_write, s_dmem_read, s_reg_write, s_csr_write;
 
     always_comb begin : output_logic
         // Default values
-        inst_read  = 0;
-        s_data_read  = 0;
+        s_imem_read  = 0;
+        s_dmem_read  = 0;
         s_pc_write   = 0;
-        s_data_write = 0;
+        s_dmem_write = 0;
         s_reg_write  = 0;
         s_csr_write  = 0;
 
-        trap_start = 0;
         trap_finish = 0;
 
         inst_addr_misalign = 0;
@@ -87,7 +81,7 @@ module control_unit (
 
         unique case (current_state)
             // Fetch instruction
-            FETCH: inst_read = 1;
+            FETCH: s_imem_read = 1;
 
             // Execute instruction
             EXECUTE: begin
@@ -100,32 +94,40 @@ module control_unit (
                     JAL: begin
                         s_pc_write = 1;
                         s_reg_write = 1;
-                        inst_addr_misalign = imem_addr[1:0] != 2'b00;
+                        inst_addr_misalign = mem_addr[1:0] != 2'b00;
                     end
 
                     JALR: begin
                         s_pc_write = 1;
                         s_reg_write = 1;
-                        inst_addr_misalign = imem_addr[1] != 0;
+                        inst_addr_misalign = mem_addr[1] != 0;
 
                     end
 
                     BRANCH: begin
                         s_pc_write = 1;
-                        inst_addr_misalign = imem_addr[1:0] != 2'b00 && take_branch;
+                        inst_addr_misalign = mem_addr[1:0] != 2'b00 && take_branch;
                     end
 
                     FENCE: s_pc_write = 1;
 
                     LOAD: begin
-                        s_data_read = 1;
-                        load_addr_misalign = dmem_addr_misalign;
+                        s_dmem_read = 1;
+                        case (inst[13:12])
+                            WORD: load_addr_misalign = |mem_addr[1:0];
+                            HALF: load_addr_misalign = mem_addr[0];
+                            default: ;
+                        endcase
                     end
 
                     STORE: begin
-                        s_data_write = 1;
+                        s_dmem_write = 1;
                         s_pc_write = dmem_ready; // Only update PC when write has completed
-                        store_addr_misalign = dmem_addr_misalign;
+                        case (inst[13:12])
+                            WORD: store_addr_misalign = |mem_addr[1:0];
+                            HALF: store_addr_misalign = mem_addr[0];
+                            default: ;
+                        endcase
                     end
 
                     SYSTEM: begin
@@ -157,12 +159,6 @@ module control_unit (
                 s_reg_write = 1;
                 s_pc_write = 1;
             end
-
-            // Initiate trap handling
-            TRAP: begin
-                s_pc_write = 1;
-                trap_start = 1;
-            end
         endcase
     end
 
@@ -171,14 +167,16 @@ module control_unit (
         if (trap_pending) begin
             pc_write   = 0;
             reg_write  = 0;
-            data_write = 0;
-            data_read  = 0;
+            imem_read  = 0;
+            dmem_write = 0;
+            dmem_read  = 0;
             csr_write  = 0;
         end else begin
             pc_write   = s_pc_write;
             reg_write  = s_reg_write;
-            data_write = s_data_write;
-            data_read  = s_data_read;
+            imem_read  = s_imem_read;
+            dmem_write = s_dmem_write;
+            dmem_read  = s_dmem_read;
             csr_write  = s_csr_write;
         end
     end
@@ -199,8 +197,6 @@ module control_unit (
             end
 
             WB: next_state = FETCH;
-
-            TRAP: next_state = FETCH;
 
             default: next_state = FETCH;
         endcase
