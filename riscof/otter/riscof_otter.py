@@ -36,6 +36,9 @@ class otter(pluginTemplate):
         # is missing in the config.ini we can hardcode the alternate here.
         self.dut_exe = os.path.abspath(config['sim_binary'])
 
+        # Boot program to load into rom
+        self.boot_rom = os.path.abspath(config['boot_rom'])
+
         # Number of parallel jobs that can be spawned off by RISCOF
         # for various actions performed in later functions, specifically to run the tests in
         # parallel on the DUT executable. Can also be used in the build function if required.
@@ -80,7 +83,7 @@ class otter(pluginTemplate):
         self.dump_cmd = 'riscv64-unknown-elf-objdump -x -S -s {3} > program.dump'
         self.binary_cmd = 'riscv64-unknown-elf-objcopy -O binary --only-section=.data* --only-section=.text* {3} program.bin'
         self.hex_cmd = 'hexdump -v -e \'1/4 "%08x\\n"\' program.bin > program.hex'
-       
+
         # Command to extract symbols
         self.symbols_cmd = 'riscv64-unknown-elf-nm -g -B -n {3} > program.sym'
 
@@ -163,7 +166,7 @@ class otter(pluginTemplate):
             if self.target_run:
                 # set up the simulation command. Template is for spike. Please change.
                 simcmd = [
-                    self.dut_exe + " --symbols program.sym --memory-file program.hex",
+                    self.dut_exe + " --symbols program.sym --memory-file program.hex --boot-file " + self.boot_rom,
                     f'mv otter.signature {sig_file}'
                 ]
             else:
