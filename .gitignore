@@ -2,14 +2,14 @@
 .mypy_cache
 
 # Verilator build artifacts
-*/obj_dir
+**/obj_dir
 
 # Simulation artifacts
 *.fst*
 *.signature
 
 # Software build artifacts
-*/build
+**/build
 
 # RISCOF artifacts
 */riscof_work
