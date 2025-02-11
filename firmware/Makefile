@@ -1,4 +1,4 @@
-TARGET_BIN = boot
+TARGET_BIN = firmware
 
 BUILD_DIR := ./build
 SRC_DIR := ./
@@ -25,7 +25,7 @@ LDFLAGS := -T./link.ld $(TARGET_ARCH) -nostdlib -nostartfiles -mno-relax
 # When typing 'make' not followed by a rule name, the first rule is followed.  This rule depends on
 # everything, causing all the parts to be built
 
-all: dump memory
+all: dump memory symbols
 
 .PHONY: build
 build: $(BUILD_DIR)/$(TARGET_BIN).elf
@@ -46,14 +46,19 @@ $(BUILD_DIR)/$(TARGET_BIN).dump: $(BUILD_DIR)/$(TARGET_BIN).elf
 
 # create ASCII hex file for OTTER memory
 .PHONY: memory
-memory: $(TARGET_BIN).rom
+memory: $(BUILD_DIR)/$(TARGET_BIN).hex
 
 $(BUILD_DIR)/$(TARGET_BIN).bin: $(BUILD_DIR)/$(TARGET_BIN).elf
-	$(OBJCOPY) -O binary --only-section=.data* --only-section=.text* $< $@
+	$(OBJCOPY) -O binary --only-section=.text $< $@
 
-$(TARGET_BIN).rom: $(BUILD_DIR)/$(TARGET_BIN).bin
+$(BUILD_DIR)/$(TARGET_BIN).hex: $(BUILD_DIR)/$(TARGET_BIN).bin
 	hexdump -v -e '1/4 "%08x\n"' $< > $@
 
+.PHONY: symbols
+symbols: $(BUILD_DIR)/$(TARGET_BIN).symbols
+
+$(BUILD_DIR)/$(TARGET_BIN).symbols: $(BUILD_DIR)/$(TARGET_BIN).elf
+	$(NM) -g -B -n $< > $@
 
 .PHONY: clean
 clean:
