@@ -4,7 +4,8 @@ module wb_sram
     #(
         parameter SIZE_BYTES = 32_768,
         localparam NUM_WORDS = SIZE_BYTES/4,
-        localparam ADDR_WIDTH = $clog2(SIZE_BYTES)
+        localparam ADDR_WIDTH = $clog2(SIZE_BYTES),
+        parameter FILE = ""
     ) (
         input  logic                  wb_clk_i,
         input  logic                  wb_cyc_i,
@@ -17,16 +18,16 @@ module wb_sram
         output logic                  wb_ack_o
     );
 
-    // Raw memory block
-    logic [31:0] mem [0:NUM_WORDS-1];
+    (* ram_style = "block" *)
+    logic [31:0] mem [NUM_WORDS-1:0];
 
-    integer i;
+    initial if (FILE != "") $readmemh(FILE, mem);
 
-    // Port A
     always_ff @(posedge wb_clk_i) begin
         wb_ack_o <= 0;
 
         if (wb_cyc_i & wb_stb_i & ~wb_ack_o) begin
+            integer i;
             for (i = 0; i < 4; i++) begin
                 if (wb_we_i & wb_sel_i[i])
                     mem[wb_adr_i[ADDR_WIDTH-1:2]][8*i +: 8] <= wb_dat_i[8*i +: 8];
