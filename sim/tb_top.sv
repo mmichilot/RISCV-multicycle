@@ -9,29 +9,53 @@ module tb_top
         input bit [31:0] mem_signature_begin,
         input bit [31:0] mem_signature_end,
         input bit [31:0] mem_mailbox,
-        input string     mem_file,
-        input string     boot_file
+        input string     mem_file
     );
 
-    top #(
-        .SRAM_SIZE(2_097_152)
-    ) top (
+    logic [31:0] interrupts;
+
+    logic wb_cyc_o, wb_stb_o, wb_ack_i, wb_we_o;
+    logic [3:0] wb_sel_o;
+    logic [31:0] wb_adr_o, wb_dat_o, wb_dat_i;
+    core #(
+        .RESET_ADDR(32'h8000_0000)
+    ) core(
         .clk,
         .rst_n,
 
-        .external_int(1'b0)
+        .wb_cyc_o,
+        .wb_stb_o,
+        .wb_stall_i (0),
+        .wb_ack_i,
+        .wb_we_o,
+        .wb_sel_o,
+        .wb_adr_o,
+        .wb_dat_o,
+        .wb_dat_i,
+
+        .interrupts
+    );
+
+    wb_sram #(
+        .SIZE_BYTES (2_097_152)
+    ) sram(
+        .wb_clk_i (clk),
+        .wb_cyc_i (wb_cyc_o),
+        .wb_stb_i (wb_stb_o),
+        .wb_adr_i (wb_adr_o[20:0]),
+        .wb_we_i  (wb_we_o),
+        .wb_sel_i (wb_sel_o),
+        .wb_dat_i (wb_dat_o),
+        .wb_dat_o (wb_dat_i),
+        .wb_ack_o (wb_ack_i)
     );
 
     initial begin
         $display("SIMULATION START");
 
-        // Load boot file into rom
-        $display("\nLoading boot file: %s", boot_file);
-        $readmemh(boot_file, top.rom.mem);
-
         // Load memory into sram
         $display("\nLoading memory file: %s", mem_file);
-        $readmemh(mem_file, top.sram.mem);
+        $readmemh(mem_file, sram.mem);
 
         $display("\nMemory Address passed from Verilator");
         $display("Memory Mailbox: 0x%08X", mem_mailbox);
@@ -44,10 +68,10 @@ module tb_top
     /* verilator lint_off UNUSED */
     logic [31:0] mailbox_data;
     /* verilator lint_on UNUSED */
-    assign mailbox_write = top.wb_cyc_o & top.wb_stb_o & top.wb_we_o & (top.wb_adr_o == mem_mailbox);
-    assign mailbox_data  = top.wb_dat_o;
+    assign mailbox_write = wb_cyc_o & wb_stb_o & wb_we_o & (wb_adr_o == mem_mailbox);
+    assign mailbox_data  = wb_dat_o;
 
-    parameter MAX_CYCLE_COUNT = 300_000;
+    parameter MAX_CYCLE_COUNT = 200_000;
 
     int cycleCnt = 0;
     always @(negedge clk) begin
@@ -74,7 +98,7 @@ module tb_top
         sig_start = mem_signature_begin / 4;
         sig_end = mem_signature_end / 4;
         for (i = sig_start; i < sig_end; i++) begin
-            $fwrite(fp, "%08X\n", top.sram.mem[i]);
+            $fwrite(fp, "%08X\n", sram.mem[i]);
         end
 
         $fclose(fp);
@@ -85,9 +109,9 @@ module tb_top
 
         fp = $fopen("otter.signature", "w");
         mem_start = 0;
-        mem_end = $size(top.sram.mem);
+        mem_end = $size(sram.mem);
         for (i = mem_start; i < mem_end; i = i + 1)
-            $fwrite(fp, "%08X\n", top.sram.mem[i]);
+            $fwrite(fp, "%08X\n", sram.mem[i]);
     endtask
 
 endmodule
