@@ -2,7 +2,7 @@
 
 // Core Local INTerrupt Controller w/ Wishbone Interface
 // Set of memory-mapped registers that control timer and software interrupts
-module wb_clint (
+module clint (
         input clk,
         input rst_n,
 
