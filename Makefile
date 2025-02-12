@@ -6,15 +6,6 @@ BOOT_DIR   = ./boot
 .PHONY: default
 default: riscof
 
-.PHONY: boot_rom
-boot_rom:
-	@echo "\n\
-	-----------------------------\n\
-	----- Building boot ROM -----\n\
-	-----------------------------\n"
-
-	make -C $(BOOT_DIR)
-
 .PHONY: sim_binary
 sim_binary:
 	@echo "\n\
@@ -33,16 +24,6 @@ riscof: sim_binary
 
 	make -C $(RISCOF_DIR)
 
-ifdef SKIP_TEST
-.PHONY: fpga
-fpga:
-	@echo "\n\
-	------------------------------------\n\
-	----- Building design for FPGA -----\n\
-	-------------------------------------\n"
-
-	make -C $(FPGA_DIR) all
-else
 .PHONY: fpga
 fpga: riscof
 	@echo "\n\
@@ -51,10 +32,10 @@ fpga: riscof
 	-------------------------------------\n"
 
 	make -C $(FPGA_DIR) all
-endif
 
 .PHONY: clean
 clean:
+	@make -C $(BOOT_DIR) clean
 	@make -C $(SIM_DIR) clean
 	@make -C $(RISCOF_DIR) clean
 	@make -C $(FPGA_DIR) clean
