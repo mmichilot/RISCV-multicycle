@@ -57,7 +57,7 @@ module tb_soc
     task dump_memory();
         integer fp, i, mem_start, mem_end;
 
-        fp = $fopen("memdump", "w");
+        fp = $fopen("mem.dump", "w");
         mem_start = 0;
         mem_end = $size(soc.sram.mem);
         for (i = mem_start; i < mem_end; i = i + 1)

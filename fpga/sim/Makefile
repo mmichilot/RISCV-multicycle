@@ -41,4 +41,4 @@ build:
 .PHONY: clean
 clean:
 	-rm -rf obj_dir
-	-rm -rf memdump trace.fst
+	-rm -rf mem.dump trace.fst
