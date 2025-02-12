@@ -30,6 +30,7 @@ module memory (
     output logic [31:0] wb_dat_o,
     input  logic [31:0] wb_dat_i
 );
+
     /*
      * Wishbone Handshake
      */
@@ -41,22 +42,24 @@ module memory (
         else       current_state <= next_state;
     end
 
-    logic mem_request = imem_read | dmem_read | dmem_write;
+    logic mem_request;
+    assign mem_request = imem_read | dmem_read | dmem_write;
+
     always_comb begin : next_state_logic
         case (current_state)
             IDLE:     next_state = (mem_request & ~wb_ack_i) ? REQUEST : IDLE;
-            
+
             REQUEST: begin
                 if (~wb_stall_i & wb_ack_i) // For async ack
                     next_state = IDLE;
                 else if (~wb_stall_i)
                     next_state = WAIT4ACK;
-                else             
+                else
                     next_state = REQUEST;
             end
-            
+
             WAIT4ACK: next_state = wb_ack_i ? IDLE : WAIT4ACK;
-            
+
             default:  next_state = current_state;
         endcase
     end
@@ -83,6 +86,17 @@ module memory (
                 wb_stb_o = 0;
             end
         endcase
+    end
+
+    // Invalidate a wishbone transfer if memory request ever goes low and an ack
+    // has not been received.
+    // For example, an interrupt occurs during a transfer to a synchronous device
+    logic invalid_req;
+    always_ff @(posedge clk_i) begin
+        if ((current_state != IDLE) && !mem_request && !wb_ack_i)
+            invalid_req <= '1;
+        else if (invalid_req & wb_ack_i)
+            invalid_req <= '0;
     end
 
     /*
@@ -121,7 +135,7 @@ module memory (
         endcase
     end
 
-    
+
     /*
      * Wishbone DAT_I() Setup
      */
@@ -149,19 +163,19 @@ module memory (
     /*
      * Instruction and Data Registers
      */
-    assign imem_ready = imem_read & wb_ack_i;
+    assign imem_ready = imem_read & wb_ack_i & ~invalid_req;
     always_ff @(posedge clk_i) begin : inst_reg
         if (rst_i)
             instruction <= '0;
-        else if (imem_read & wb_ack_i)
+        else if (wb_ack_i & imem_read)
             instruction <= wb_dat_i;
     end
 
-    assign dmem_ready = (dmem_read | dmem_write) & wb_ack_i;
+    assign dmem_ready = (dmem_read | dmem_write) & wb_ack_i & ~invalid_req;
     always_ff @(posedge clk_i) begin : data_reg
         if (rst_i)
             data <= '0;
-        else if (dmem_read & wb_ack_i)
+        else if (wb_ack_i & dmem_read)
             data <= data_next;
     end
 
