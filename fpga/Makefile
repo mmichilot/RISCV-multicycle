@@ -1,5 +1,5 @@
 PROJ=multicycle
-TOP_MODULE=fpga_top
+TOP_MODULE=soc
 
 # Directories
 RTL_DIR     = ../rtl
@@ -44,14 +44,14 @@ PATH_SEP   = /
 
 # Run nextpnr-ecp5 to place the logic components and route the nets to pins.
 %_out.config: %.json
-	nextpnr-ecp5 --json $< --textcfg $@ --25k --package CSFBGA285 --lpf uart.pcf
+	nextpnr-ecp5 --json $< --textcfg $@ --85k --lpf soc_ulx3s.lpf
 
 # Generate the final bitstream from the pnr output.
 %.bit: %_out.config
-	ecppack --compress --freq 38.8 --input $< --bit $@
+	ecppack --input $< --bit $@
 
 flash: $(PROJ).bit
-	openFPGALoader -d /dev/ttyUSB0 -f $(PROJ).bit
+	openFPGALoader --board=ulx3s $(PROJ).bit
 
 clean:
 	$(RM) -f $(PROJ).bit $(PROJ)_out.config $(PROJ).json
