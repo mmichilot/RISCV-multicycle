@@ -24,26 +24,7 @@ riscof: sim_binary
 
 	make -C $(RISCOF_DIR)
 
-.PHONY: firmware
-firmware:
-	@echo "\n\
-	-----------------------------\n\
-	----- Building Firmware -----\n\
-	-----------------------------\n"
-	make -C $(FIRMWARE_DIR)
-
-.PHONY: fpga
-fpga: riscof firmware
-	@echo "\n\
-	------------------------------------\n\
-	----- Building design for FPGA -----\n\
-	-------------------------------------\n"
-
-	make -C $(FPGA_DIR)
-
 .PHONY: clean
 clean:
 	@make -C $(SIM_DIR) clean
 	@make -C $(RISCOF_DIR) clean
-	@make -C $(FIRMWARE_DIR) clean
-	@make -C $(FPGA_DIR) clean
