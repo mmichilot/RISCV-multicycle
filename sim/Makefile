@@ -17,6 +17,9 @@ VERILATOR_FLAGS += -x-assign 0
 # Warn about lint issues
 # VERILATOR_FLAGS += -Wall
 
+# Enable timing support
+VERILATOR_FLAGS += --timing
+
 # Make waveforms
 VERILATOR_FLAGS += --trace-fst
 
@@ -41,4 +44,3 @@ build:
 .PHONY: clean
 clean:
 	-rm -rf obj_dir
-	
