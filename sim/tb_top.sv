@@ -36,7 +36,11 @@ module tb_top
 
     // Memory
     logic [31:0] mem [524_288];
+
     always_ff @(posedge clk) begin
+        int random_delay;
+        random_delay = $random % 10;
+
         wb_ack_i <= 0;
         if (wb_cyc_o & wb_stb_o & ~wb_ack_i) begin
             integer i;
@@ -45,6 +49,8 @@ module tb_top
                     mem[wb_adr_o[20:2]][8*i +: 8] <= wb_dat_o[8*i +: 8];
             end
             wb_dat_i <= mem[wb_adr_o[20:2]];
+
+            repeat (random_delay) @(posedge clk);
             wb_ack_i <= 1;
         end
     end
