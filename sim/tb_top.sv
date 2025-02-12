@@ -17,9 +17,7 @@ module tb_top
     logic wb_cyc_o, wb_stb_o, wb_ack_i, wb_we_o;
     logic [3:0] wb_sel_o;
     logic [31:0] wb_adr_o, wb_dat_o, wb_dat_i;
-    core #(
-        .RESET_ADDR(32'h8000_0000)
-    ) core(
+    core core(
         .clk,
         .rst_n,
 
