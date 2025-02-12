@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 `include "defs.svh"
 
-module core(
+module core #(
+        parameter RESET_VECTOR = 'h8000_0000
+    )(
         input clk,
         input rst_n,
 
@@ -108,7 +110,9 @@ module core(
 
     // Program Counter
     logic [31:0] pc_out;
-    prog_cntr prog_cntr (
+    prog_cntr #(
+        .RESET_ADDR (RESET_VECTOR)
+    ) prog_cntr (
         .clk,
         .rst_n,
         .ld(pc_write | trap_pending),
