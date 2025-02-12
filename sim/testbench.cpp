@@ -72,11 +72,6 @@ int main(int argc, char** argv) {
             }
         }
 
-        if ((strcmp(arg, "--boot-file") == 0 && ((i + 1) < argc))) {
-            const std::string boot_file = argv[i + 1];
-            tb->m_core->boot_file = boot_file;
-        }
-
         if ((strcmp(arg, "--memory-file") == 0) && ((i + 1) < argc)) {
             const std::string mem_file = argv[i + 1];
             tb->m_core->mem_file = mem_file;
