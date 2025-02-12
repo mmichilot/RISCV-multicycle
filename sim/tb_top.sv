@@ -34,26 +34,27 @@ module tb_top
         .interrupts
     );
 
-    wb_sram #(
-        .SIZE_BYTES (2_097_152)
-    ) sram(
-        .wb_clk_i (clk),
-        .wb_cyc_i (wb_cyc_o),
-        .wb_stb_i (wb_stb_o),
-        .wb_adr_i (wb_adr_o[20:0]),
-        .wb_we_i  (wb_we_o),
-        .wb_sel_i (wb_sel_o),
-        .wb_dat_i (wb_dat_o),
-        .wb_dat_o (wb_dat_i),
-        .wb_ack_o (wb_ack_i)
-    );
+    // Memory
+    logic [31:0] mem [524_288];
+    always_ff @(posedge clk) begin
+        wb_ack_i <= 0;
+        if (wb_cyc_o & wb_stb_o & ~wb_ack_i) begin
+            integer i;
+            for (i = 0; i < 4; i++) begin
+                if (wb_we_o & wb_sel_o[i])
+                    mem[wb_adr_o[20:2]][8*i +: 8] <= wb_dat_o[8*i +: 8];
+            end
+            wb_dat_i <= mem[wb_adr_o[20:2]];
+            wb_ack_i <= 1;
+        end
+    end
 
     initial begin
         $display("SIMULATION START");
 
         // Load memory into sram
         $display("\nLoading memory file: %s", mem_file);
-        $readmemh(mem_file, sram.mem);
+        $readmemh(mem_file, mem);
 
         $display("\nMemory Address passed from Verilator");
         $display("Memory Mailbox: 0x%08X", mem_mailbox);
@@ -76,19 +77,20 @@ module tb_top
         cycleCnt <= cycleCnt + 1;
 
         if (cycleCnt == MAX_CYCLE_COUNT) begin
+            $display("SIMULATION FAILED");
             $display("Max cycle count reached, terminating...");
             dump_memory();
             $finish;
         end
 
         if (mailbox_write && (mailbox_data[7:0] == 8'hFF || mailbox_data[7:0] == 8'h01)) begin
-            $display("SIMULATION FINISHED");
+            $display("SIMULATION PASSED");
             dump_signature();
             $finish;
         end
     end
 
-    task dump_signature ();
+    function void dump_signature ();
         integer fp, i, sig_start, sig_end;
 
         fp = $fopen("otter.signature", "w");
@@ -96,20 +98,20 @@ module tb_top
         sig_start = mem_signature_begin / 4;
         sig_end = mem_signature_end / 4;
         for (i = sig_start; i < sig_end; i++) begin
-            $fwrite(fp, "%08X\n", sram.mem[i]);
+            $fwrite(fp, "%08X\n", mem[i]);
         end
 
         $fclose(fp);
-    endtask
+    endfunction
 
-    task dump_memory();
+    function void dump_memory();
         integer fp, i, mem_start, mem_end;
 
-        fp = $fopen("otter.signature", "w");
+        fp = $fopen("mem.dump", "w");
         mem_start = 0;
-        mem_end = $size(sram.mem);
+        mem_end = $size(mem);
         for (i = mem_start; i < mem_end; i = i + 1)
-            $fwrite(fp, "%08X\n", sram.mem[i]);
-    endtask
+            $fwrite(fp, "%08X\n", mem[i]);
+    endfunction
 
 endmodule
