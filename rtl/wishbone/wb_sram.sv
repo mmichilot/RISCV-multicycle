@@ -19,7 +19,7 @@ module wb_sram
     );
 
     (* ram_style = "block" *)
-    logic [31:0] mem [NUM_WORDS-1:0];
+    logic [31:0] mem [NUM_WORDS];
 
     initial if (FILE != "") $readmemh(FILE, mem);
 
