@@ -170,6 +170,7 @@ module csr (
     end
 
     assign irq_en = mstatus_q[3];
+    assign mie    = mie_q;
     assign mtvec  = mtvec_q;
     assign mepc   = mepc_q;
 
