@@ -241,7 +241,7 @@ module core #(
         .csr_we    (csr_write),
         .csr_op    (func3[1:0]),
         .csr_reg   (inst[31:20]),
-        .csr_wdata (func3[2] ? immed : rs1_data),
+        .csr_wdata (func3[2] ? 32'(rs1) : rs1_data),
         .csr_rdata,
 
 
