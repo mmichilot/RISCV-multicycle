@@ -35,7 +35,10 @@ module tb_top
     );
 
     // Memory
-    logic [31:0] mem [524_288];
+    localparam SRAM_BYTES = 2_097_152;
+    localparam SRAM_MASK = SRAM_BYTES - 1;
+    localparam SRAM_WIDTH = $clog2(SRAM_BYTES);
+    logic [31:0] mem [SRAM_BYTES / 4];
 
     always_ff @(posedge clk) begin
         int random_delay;
@@ -46,9 +49,9 @@ module tb_top
             integer i;
             for (i = 0; i < 4; i++) begin
                 if (wb_we_o & wb_sel_o[i])
-                    mem[wb_adr_o[20:2]][8*i +: 8] <= wb_dat_o[8*i +: 8];
+                    mem[wb_adr_o[SRAM_WIDTH-1:2]][8*i +: 8] <= wb_dat_o[8*i +: 8];
             end
-            wb_dat_i <= mem[wb_adr_o[20:2]];
+            wb_dat_i <= mem[wb_adr_o[SRAM_WIDTH-1:2]];
 
             repeat (random_delay) @(posedge clk);
             wb_ack_i <= 1;
@@ -101,8 +104,8 @@ module tb_top
 
         fp = $fopen("otter.signature", "w");
 
-        sig_start = mem_signature_begin / 4;
-        sig_end = mem_signature_end / 4;
+        sig_start = (SRAM_MASK & mem_signature_begin) / 4;
+        sig_end = (SRAM_MASK & mem_signature_end) / 4;
         for (i = sig_start; i < sig_end; i++) begin
             $fwrite(fp, "%08X\n", mem[i]);
         end
