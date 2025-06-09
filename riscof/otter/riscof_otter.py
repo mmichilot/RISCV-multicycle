@@ -70,19 +70,19 @@ class otter(pluginTemplate):
         # Note the march is not hardwired here, because it will change for each
         # test. Similarly the output elf name and compile macros will be assigned later in the
         # runTests function
-        self.compile_cmd = 'riscv64-unknown-elf-gcc -march={0} \
+        self.compile_cmd = 'riscv32-unknown-elf-gcc -mno-relax -march={0} \
 -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
             -T '+self.pluginpath+'/env/link.ld\
             -I '+self.pluginpath+'/env/\
             -I ' + archtest_env + ' {2} -o {3} {4}'
 
         # Command to convert binary to hex file
-        self.dump_cmd = 'riscv64-unknown-elf-objdump -x -S -s {3} > program.dump'
-        self.binary_cmd = 'riscv64-unknown-elf-objcopy -O binary --only-section=.data* --only-section=.text* {3} program.bin'
+        self.dump_cmd = 'riscv32-unknown-elf-objdump -x -S -s {3} > program.dump'
+        self.binary_cmd = 'riscv32-unknown-elf-objcopy -O binary --only-section=.data* --only-section=.text* {3} program.bin'
         self.hex_cmd = 'hexdump -v -e \'1/4 "%08x\\n"\' program.bin > program.hex'
 
         # Command to extract symbols
-        self.symbols_cmd = 'riscv64-unknown-elf-nm -g -B -n {3} > program.sym'
+        self.symbols_cmd = 'riscv32-unknown-elf-nm -g -B -n {3} > program.sym'
 
     def build(self, isa_yaml, platform_yaml):
 
