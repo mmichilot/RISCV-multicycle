@@ -163,7 +163,7 @@ module memory (
     /*
      * Instruction and Data Registers
      */
-    assign imem_ready = imem_read & wb_ack_i & ~invalid_req;
+    assign imem_ready = wb_ack_i & ~invalid_req;
     always_ff @(posedge clk_i) begin : inst_reg
         if (rst_i)
             instruction <= '0;
@@ -171,7 +171,7 @@ module memory (
             instruction <= wb_dat_i;
     end
 
-    assign dmem_ready = (dmem_read | dmem_write) & wb_ack_i & ~invalid_req;
+    assign dmem_ready = wb_ack_i & ~invalid_req;
     always_ff @(posedge clk_i) begin : data_reg
         if (rst_i)
             data <= '0;
