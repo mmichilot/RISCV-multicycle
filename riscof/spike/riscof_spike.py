@@ -49,6 +49,8 @@ class spike(pluginTemplate):
         self.isa_spec = os.path.abspath(config['ispec'])
         self.platform_spec = os.path.abspath(config['pspec'])
 
+        self.gcc_prefix = config['gcc_prefix']
+
         #We capture if the user would like the run the tests on the target or
         #not. If you are interested in just compiling the tests and not running
         #them on the target, then following variable should be set to False
@@ -70,7 +72,7 @@ class spike(pluginTemplate):
        # Note the march is not hardwired here, because it will change for each
        # test. Similarly the output elf name and compile macros will be assigned later in the
        # runTests function
-       self.compile_cmd = 'riscv32-unknown-elf-gcc -mno-relax -march={0} \
+       self.compile_cmd = self.gcc_prefix + '-gcc -mno-relax -march={0} \
          -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g\
          -T '+self.pluginpath+'/env/link.ld\
          -I '+self.pluginpath+'/env/\
