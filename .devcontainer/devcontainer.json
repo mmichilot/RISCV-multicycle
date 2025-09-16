@@ -1,0 +1,23 @@
+{
+	"name": "Ubuntu",
+	"image": "mcr.microsoft.com/devcontainers/base:noble",
+
+	"features": {
+		"ghcr.io/mmichilot/fpga-features/oss-cad-suite:latest": {
+			"autoActivate": true
+		},
+		"ghcr.io/mmichilot/fpga-features/riscv-toolchain:latest": {},
+		"ghcr.io/mmichilot/fpga-features/spike-sim:latest": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"mshr-h.VerilogHDL",
+				"lramseyer.vaporview"
+			]
+		}
+	},
+
+	"onCreateCommand": ["/bin/bash", "-c", "tabbypip install -r requirements.txt"]
+}

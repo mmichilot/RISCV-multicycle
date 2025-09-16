@@ -1,6 +1,5 @@
 .vscode
 .mypy_cache
-.devcontainer/
 
 # Verilator build artifacts
 **/obj_dir
