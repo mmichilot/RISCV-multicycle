@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "defs.svh"
 
-module core #(
+module multicycle #(
         parameter RESET_VECTOR = 'h8000_0000
     )(
         input clk,
