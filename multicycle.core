@@ -1,0 +1,43 @@
+CAPI=2:
+name: mmichilot:cores:multicycle:1.0.0
+description: A RISC-V multicycle CPU. Supports rv32i_zicsr
+
+filesets:
+  rtl:
+    files:
+      - rtl/alu.sv
+      - rtl/branch_gen.sv
+      - rtl/control_unit.sv
+      - rtl/csr.sv
+      - rtl/decoder.sv
+      - rtl/immed_gen.sv
+      - rtl/irq_controller.sv
+      - rtl/memory.sv
+      - rtl/multicycle.sv
+      - rtl/prog_cntr.sv
+      - rtl/reg_file.sv
+      - rtl/defs.svh: {is_include_file: true}
+    file_type: systemVerilogSource
+  tb:
+    files:
+      - sim/testbench.cpp
+      - sim/testbench.h: {is_include_file: true}
+      - sim/tb_top.sv: {file_type: systemVerilogSource}
+    file_type: cppSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: core
+
+  build: 
+    <<: *default
+    description: Simulate the design
+    flow: generic
+    flow_options:
+      tool: verilator
+      verilator_options: ["--trace-fst", "--timing"]
+    filesets_append:
+      - tb
+    toplevel: tb_top
