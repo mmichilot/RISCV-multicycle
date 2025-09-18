@@ -1,7 +1,5 @@
-SIM_DIR      = ./sim
+BUILD_DIR    = ./build
 RISCOF_DIR   = ./riscof
-FPGA_DIR     = ./fpga
-FIRMWARE_DIR = ./firmware
 
 .PHONY: default
 default: riscof
@@ -10,10 +8,10 @@ default: riscof
 sim_binary:
 	@echo "\n\
 	------------------------------------------------------\n\
-	----- Building simulation binary using Verilator -----\n\
+	----- Building simulation binary using FuseSoC -----\n\
 	------------------------------------------------------\n"
 
-	make -C $(SIM_DIR)
+	fusesoc --cores-root . run --target build --work-root $(BUILD_DIR) multicycle
 
 .PHONY: riscof
 riscof: sim_binary
@@ -26,5 +24,5 @@ riscof: sim_binary
 
 .PHONY: clean
 clean:
-	@make -C $(SIM_DIR) clean
+	@rm -r $(BUILD_DIR)
 	@make -C $(RISCOF_DIR) clean
