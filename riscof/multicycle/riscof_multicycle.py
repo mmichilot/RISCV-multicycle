@@ -6,8 +6,8 @@ from riscof.pluginTemplate import pluginTemplate
 
 logger = logging.getLogger()
 
-class otter(pluginTemplate):
-    __model__   = "otter"
+class multicycle(pluginTemplate):
+    __model__   = "multicycle"
     __version__ = "1.0"
 
     def __init__(self, *args, **kwargs):
