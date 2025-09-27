@@ -9,8 +9,9 @@ module decoder(
     // verilator lint_on UNUSED
 
     input take_branch,
-    input trap_pending,
+    input trap_start,
     input trap_finish,
+    input cpu_stall,
 
     output logic [2:0] immed_type,
 
@@ -76,8 +77,9 @@ module decoder(
 
     // PC Source MUX
     always_comb begin
-        if (trap_pending)     pc_src = CSR_MTVEC;
+        if (trap_start)       pc_src = CSR_MTVEC;
         else if (trap_finish) pc_src = CSR_MEPC;
+        else if (cpu_stall)   pc_src = CURR_PC;  
         else begin
             unique case(opcode)
                 LUI, AUIPC, OP_IMM, OP, LOAD, STORE: pc_src = PC_PLUS_4;

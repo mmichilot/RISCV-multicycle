@@ -5,18 +5,22 @@ module memory (
     input clk_i,
     input rst_i,
 
-    input  logic        imem_read,
-    output logic        imem_ready,
-    input  logic [31:0] imem_addr,
-    output logic [31:0] instruction,
 
+    // Memory Control
+    input  logic        imem_read,
     input  logic        dmem_read,
     input  logic        dmem_write,
-    output logic        dmem_ready,
+    output logic        cpu_stall,
+
+    // Memory Data
+    input  logic [31:0] imem_addr,
     input  logic [1:0]  dmem_size,
     input  logic        dmem_sign,
     input  logic [31:0] dmem_addr,
     input  logic [31:0] dmem_wdata,
+
+    // Output Registers
+    output logic [31:0] instruction,
     output logic [31:0] data,
 
     // Wishbone interface
@@ -38,8 +42,10 @@ module memory (
 
     state_e current_state, next_state;
     always_ff @(posedge clk_i) begin : state_reg
-        if (rst_i) current_state <= IDLE;
-        else       current_state <= next_state;
+        if (rst_i)             
+            current_state <= IDLE;
+        else                   
+            current_state <= next_state;
     end
 
     logic mem_request;
@@ -47,7 +53,12 @@ module memory (
 
     always_comb begin : next_state_logic
         case (current_state)
-            IDLE:     next_state = (mem_request & ~wb_ack_i) ? REQUEST : IDLE;
+            IDLE: begin
+                if (mem_request)
+                    next_state = REQUEST;
+                else
+                    next_state = IDLE;
+            end
 
             REQUEST: begin
                 if (~wb_stall_i & wb_ack_i) // For async ack
@@ -58,7 +69,12 @@ module memory (
                     next_state = REQUEST;
             end
 
-            WAIT4ACK: next_state = wb_ack_i ? IDLE : WAIT4ACK;
+            WAIT4ACK: begin
+                if (wb_ack_i)
+                    next_state = IDLE;
+                else
+                    next_state = WAIT4ACK;
+            end
 
             default:  next_state = current_state;
         endcase
@@ -67,36 +83,29 @@ module memory (
     always_comb begin : output_logic
         case (current_state)
             IDLE: begin
-                wb_cyc_o = 0;
-                wb_stb_o = 0;
+                wb_cyc_o  = 0;
+                wb_stb_o  = 0;
+                cpu_stall = 0;
             end
 
             REQUEST: begin
-                wb_cyc_o = 1;
-                wb_stb_o = 1;
+                wb_cyc_o  = 1;
+                wb_stb_o  = 1;
+                cpu_stall = 1;
             end
 
             WAIT4ACK: begin
-                wb_cyc_o = 1;
-                wb_stb_o = 0;
+                wb_cyc_o  = 1;
+                wb_stb_o  = 0;
+                cpu_stall = 1;
             end
 
             default: begin
-                wb_cyc_o = 0;
-                wb_stb_o = 0;
+                wb_cyc_o  = 0;
+                wb_stb_o  = 0;
+                cpu_stall = 0;
             end
         endcase
-    end
-
-    // Invalidate a wishbone transfer if memory request ever goes low and an ack
-    // has not been received.
-    // For example, an interrupt occurs during a transfer to a synchronous device
-    logic invalid_req;
-    always_ff @(posedge clk_i) begin
-        if ((current_state != IDLE) && !mem_request && !wb_ack_i)
-            invalid_req <= '1;
-        else if (invalid_req & wb_ack_i)
-            invalid_req <= '0;
     end
 
     /*
@@ -163,7 +172,6 @@ module memory (
     /*
      * Instruction and Data Registers
      */
-    assign imem_ready = wb_ack_i & ~invalid_req;
     always_ff @(posedge clk_i) begin : inst_reg
         if (rst_i)
             instruction <= '0;
@@ -171,7 +179,6 @@ module memory (
             instruction <= wb_dat_i;
     end
 
-    assign dmem_ready = wb_ack_i & ~invalid_req;
     always_ff @(posedge clk_i) begin : data_reg
         if (rst_i)
             data <= '0;

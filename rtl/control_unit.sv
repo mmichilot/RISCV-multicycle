@@ -12,6 +12,7 @@ module control_unit (
 
         // Trap signals
         input trap_pending,
+        output logic trap_start,
         output logic trap_finish,
 
         // Exceptions
@@ -33,8 +34,7 @@ module control_unit (
         output logic reg_write,
         output logic csr_write,
 
-        input imem_ready,
-        input dmem_ready
+        input logic cpu_stall
     );
 
     logic [6:0] opcode;
@@ -46,29 +46,25 @@ module control_unit (
     logic [11:0] func12;
     assign func12 = inst[31:20];
 
-    typedef enum logic [1:0] {FETCH, EXECUTE, WB} state_e;
+    typedef enum logic [3:0] {FETCH, EXECUTE, MEM, WB, TRAP} state_e;
     state_e current_state, next_state;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
             current_state <= FETCH;
-        else if (trap_pending)
-            current_state <= FETCH;
         else
             current_state <= next_state;
     end
 
-    // Internal signals for CPU state
-    logic s_pc_write, s_imem_read, s_dmem_write, s_dmem_read, s_reg_write, s_csr_write;
 
     always_comb begin : output_logic
         // Default values
-        s_imem_read  = 0;
-        s_dmem_read  = 0;
-        s_pc_write   = 0;
-        s_dmem_write = 0;
-        s_reg_write  = 0;
-        s_csr_write  = 0;
+        imem_read  = 0;
+        dmem_read  = 0;
+        pc_write   = 0;
+        dmem_write = 0;
+        reg_write  = 0;
+        csr_write  = 0;
 
         trap_finish = 0;
 
@@ -81,38 +77,38 @@ module control_unit (
 
         unique case (current_state)
             // Fetch instruction
-            FETCH: s_imem_read = 1;
+            FETCH: imem_read = 1;
 
             // Execute instruction
             EXECUTE: begin
                 unique case(opcode)
                     LUI, AUIPC, OP_IMM, OP: begin
-                        s_pc_write  = 1;
-                        s_reg_write = 1;
+                        pc_write  = 1;
+                        reg_write = 1;
                     end
 
                     JAL: begin
-                        s_pc_write = 1;
-                        s_reg_write = 1;
+                        pc_write = 1;
+                        reg_write = 1;
                         inst_addr_misalign = mem_addr[1:0] != 2'b00;
                     end
 
                     JALR: begin
-                        s_pc_write = 1;
-                        s_reg_write = 1;
+                        pc_write = 1;
+                        reg_write = 1;
                         inst_addr_misalign = mem_addr[1] != 0;
 
                     end
 
                     BRANCH: begin
-                        s_pc_write = 1;
+                        pc_write = 1;
                         inst_addr_misalign = mem_addr[1:0] != 2'b00 && take_branch;
                     end
 
-                    FENCE: s_pc_write = 1;
+                    FENCE: pc_write = 1;
 
                     LOAD: begin
-                        s_dmem_read = 1;
+                        dmem_read = 1;
                         case (inst[13:12])
                             WORD: load_addr_misalign = |mem_addr[1:0];
                             HALF: load_addr_misalign = mem_addr[0];
@@ -121,8 +117,8 @@ module control_unit (
                     end
 
                     STORE: begin
-                        s_dmem_write = 1;
-                        s_pc_write = dmem_ready; // Only update PC when write has completed
+                        dmem_write = 1;
+                        pc_write = 1; // Only update PC when write has completed
                         case (inst[13:12])
                             WORD: store_addr_misalign = |mem_addr[1:0];
                             HALF: store_addr_misalign = mem_addr[0];
@@ -133,7 +129,7 @@ module control_unit (
                     SYSTEM: begin
                         // MRET / ECALL / EBREAK
                         if (func3 == '0) begin
-                            s_pc_write = 1;
+                            pc_write = 1;
                             unique case (func12)
                                 ECALL:   env_call = 1;
                                 EBREAK:  env_break = 1;
@@ -143,9 +139,9 @@ module control_unit (
 
                         // CSR
                         end else begin
-                            s_pc_write  = 1;
-                            s_reg_write = 1;
-                            s_csr_write = 1;
+                            pc_write  = 1;
+                            reg_write = 1;
+                            csr_write = 1;
                         end
                     end
 
@@ -154,52 +150,61 @@ module control_unit (
                 endcase
             end
 
+            DMEM:
+
             // Writeback for LOAD-type instructions
             WB: begin
-                s_reg_write = 1;
-                s_pc_write = 1;
+                reg_write = 1;
+                pc_write = 1;
+            end
+
+            // Setup core for trap
+            TRAP: begin
+                pc_write = 1;
+                trap_start = 1;
             end
         endcase
-    end
-
-    // Prevent CPU state from updating if there is a trap pending
-    always_comb begin : gate_CPU_state
-        if (trap_pending) begin
-            pc_write   = 0;
-            reg_write  = 0;
-            imem_read  = 0;
-            dmem_write = 0;
-            dmem_read  = 0;
-            csr_write  = 0;
-        end else begin
-            pc_write   = s_pc_write;
-            reg_write  = s_reg_write;
-            imem_read  = s_imem_read;
-            dmem_write = s_dmem_write;
-            dmem_read  = s_dmem_read;
-            csr_write  = s_csr_write;
-        end
     end
 
     always_comb begin : next_state_logic
         unique case (current_state)
             FETCH: begin
-                next_state = imem_ready ? EXECUTE : FETCH;
+                if (trap_pending) next_state = TRAP;
+                else              next_state = IMEM;
             end
 
+            IMEM:
+                if (cpu_stall) next_state = IMEM;
+                else           next_state = EXECUTE;
+
             EXECUTE: begin
-                if (opcode == LOAD)
-                    next_state = dmem_ready ? WB : EXECUTE;
-                else if (opcode == STORE)
-                    next_state = dmem_ready ? FETCH : EXECUTE;
+                if (opcode == LOAD | opcode == STORE)
+                    next_state = DMEM;
+                else if (cpu_stall)
+                    next_state = EXECUTE;
                 else
+                    next_state = FETCH;
+            end
+
+            DMEM: begin
+                if (cpu_stall) 
+                    next_state = DMEM;
+                else if (opcode == LOAD)
+                    next_state = WB;
+                else 
                     next_state = FETCH;
             end
 
             WB: next_state = FETCH;
 
+            TRAP: next_state = FETCH;
+
             default: next_state = FETCH;
         endcase
     end
+
+    logic _unused_ok = 1'b0 && &{1'b0,
+                        mem_addr[31:2],
+                        1'b0};
 
 endmodule

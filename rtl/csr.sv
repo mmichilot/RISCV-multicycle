@@ -16,6 +16,7 @@ module csr (
     input logic [31:0] pc,
     input logic [31:0] instruction,
     input logic [31:0] misaligned_addr,
+    input logic        trap_start,
     input logic        trap_finish,
 
     // To core
@@ -25,7 +26,6 @@ module csr (
     // From interrupt controller
     input  logic [31:0] mip,
     input  logic [31:0] trap_cause,
-    input  logic        trap_pending,
 
     // To interrupt controller
     output logic [31:0] mie,
@@ -123,7 +123,7 @@ module csr (
         endcase
 
         // Hardware writes (takes priority over SW writes)
-        if (trap_pending) begin
+        if (trap_start) begin
             mstatus_n[3] = 0;
             mstatus_n[7] = mstatus_q[3];
             mepc_n = pc;
