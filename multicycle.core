@@ -47,7 +47,7 @@ targets:
     flow: generic
     flow_options:
       tool: verilator
-      verilator_options: ["--timing", "--trace-fst"]
+      verilator_options: ["-Wall", "--trace-fst", "--timing"]
     filesets_append:
       - tb
     toplevel: tb_top
