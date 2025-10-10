@@ -4,6 +4,15 @@ RISCOF_BUILD = ./riscof-build
 .PHONY: default
 default: riscof
 
+.PHONY: lint
+lint:
+	@echo "\n\
+	--------------------------\n\
+	----- Linting Design -----\n\
+	--------------------------\n"
+
+	fusesoc --cores-root . run --target lint --work-root $(SIM_BUILD) multicycle
+
 .PHONY: sim_binary
 sim_binary:
 	@echo "\n\
@@ -13,7 +22,6 @@ sim_binary:
 
 	fusesoc --cores-root . run --target build --work-root $(SIM_BUILD) multicycle
 
-.PHONY: riscof
 riscof: sim_binary
 	@echo "\n\
 	--------------------------------\n\

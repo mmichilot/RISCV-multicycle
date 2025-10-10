@@ -22,69 +22,104 @@ module multicycle #(
         input logic [31:0] interrupts
     );
 
+   /**
+    *         _                _    
+    *      __(_)__ _ _ _  __ _| |___
+    *     (_-< / _` | ' \/ _` | (_-<
+    *     /__/_\__, |_||_\__,_|_/__/
+    *          |___/                
+    */
+
+    // Instruction
     logic [4:0] rs1, rs2, rd;
     assign rs1 = inst[19:15];
     assign rs2 = inst[24:20];
     assign rd  = inst[11:7];
 
-    logic [6:0] opcode;
-    assign opcode = inst[6:0];
-
     logic [2:0] func3;
     assign func3 = inst[14:12];
 
-    logic [6:0] func7;
-    assign func7 = inst[31:25];
-
     // Control unit
-    logic imem_read, dmem_read, dmem_write, imem_ready, dmem_ready;
-    logic pc_write, reg_write, csr_write;
-    logic illegal_inst, inst_addr_misalign, load_addr_misalign, store_addr_misalign, env_call, env_break;
-    logic trap_finish;
-    control_unit control_unit (
-    	.clk,
-        .rst_n,
-        .inst,
-
-        .take_branch,
-
-        // Trap Handling
-        .trap_pending,
-        .trap_finish,
-
-        .mem_addr(alu_out),
-
-        // Exceptions
-        .illegal_inst,
-        .inst_addr_misalign,
-        .load_addr_misalign,
-        .store_addr_misalign,
-        .env_call,
-        .env_break,
-
-        .pc_write,
-        .imem_read,
-        .dmem_read,
-        .dmem_write,
-        .reg_write,
-        .csr_write,
-
-        .imem_ready,
-        .dmem_ready
-    );
+    logic pc_write, mem_request, reg_write, csr_write;
+    logic trap_start, trap_finish;
+    logic [1:0] mem_op;
 
     // Decoder
     logic alu_b_src;
     logic [1:0] alu_a_src, reg_src;
     logic [2:0] pc_src, immed_type;
     logic [3:0] alu_op;
+    logic illegal_inst, inst_addr_misalign, load_addr_misalign, store_addr_misalign, env_call, env_break;
+
+
+    // Program Counter
+    logic [31:0] pc_in, pc_out, next_pc;
+    assign next_pc = pc_out + 4;
+
+    // Branch Generator
+    logic take_branch;
+
+    // Immediate Generator
+    logic [31:0] immed;
+
+    // Register File
+    logic [31:0] rs1_data, rs2_data, rd_data;
+
+    // ALU
+    logic [31:0] alu_a_data, alu_b_data, alu_out;
+
+    // IRQ Controller
+    logic interrupt_pending, exception_pending;
+    logic [31:0] mip, trap_cause;
+
+    // CSR
+    logic irq_en;
+    logic [31:0] csr_rdata, mie, mtvec, mepc;
+
+    // Memory
+    logic mem_done;
+    logic [31:0] inst, data;
+    logic [31:0] mem_addr;
+    assign mem_addr = (mem_op == INST_READ) ? pc_out : alu_out;
+
+    /**
+    *                 _           _             _ _   
+    *      __ ___ _ _| |_ _ _ ___| |  _  _ _ _ (_) |_ 
+    *     / _/ _ \ ' \  _| '_/ _ \ | | || | ' \| |  _|
+    *     \__\___/_||_\__|_| \___/_|  \_,_|_||_|_|\__|
+    *                                                 
+    */
+    control_unit control_unit (
+    	.clk,
+        .rst_n,
+        .inst,
+
+        // Trap Handling
+        .interrupt_pending,
+        .exception_pending,
+        .trap_start,
+        .trap_finish,
+
+        .pc_write,
+        .mem_request,
+        .mem_op,
+        .mem_done,
+        .reg_write,
+        .csr_write
+    );
+
+    /**
+    *         _                _         
+    *      __| |___ __ ___  __| |___ _ _ 
+    *     / _` / -_) _/ _ \/ _` / -_) '_|
+    *     \__,_\___\__\___/\__,_\___|_|  
+    *                                    
+    */
     decoder decoder (
-    	.opcode,
-        .func3,
-        .func7,
+    	.inst,
 
         .take_branch,
-        .trap_pending,
+        .trap_start,
         .trap_finish,
 
         .immed_type,
@@ -92,39 +127,52 @@ module multicycle #(
         .alu_b_src,
         .alu_op,
         .reg_src,
-        .pc_src
+        .pc_src,
+
+        .illegal_inst,
+        .alu_out,
+        .inst_addr_misalign,
+        .load_addr_misalign,
+        .store_addr_misalign,
+        .env_call,
+        .env_break
     );
 
-    // Program Counter Source MUX
-    logic [31:0] pc_data;
+    /**
+    *                                                          _           
+    *      _ __ _ _ ___  __ _ _ _ __ _ _ __    __ ___ _  _ _ _| |_ ___ _ _ 
+    *     | '_ \ '_/ _ \/ _` | '_/ _` | '  \  / _/ _ \ || | ' \  _/ -_) '_|
+    *     | .__/_| \___/\__, |_| \__,_|_|_|_| \__\___/\_,_|_||_\__\___|_|  
+    *     |_|           |___/                                              
+    */
     always_comb begin
         unique case(pc_src)
-            PC_PLUS_4: pc_data = next_pc;
-            ALU_OUT:   pc_data = alu_out;
-            LSB_ZERO:  pc_data = { alu_out[31:1], 1'b0 };
-            CSR_MTVEC: pc_data = mtvec;
-            CSR_MEPC:  pc_data = mepc;
-            default:   pc_data = next_pc;
+            PC_PLUS_4: pc_in = next_pc;
+            ALU_OUT:   pc_in = alu_out;
+            LSB_ZERO:  pc_in = { alu_out[31:1], 1'b0 };
+            CSR_MTVEC: pc_in = mtvec;
+            CSR_MEPC:  pc_in = mepc;
+            default:   pc_in = next_pc;
         endcase
     end
 
-    // Program Counter
-    logic [31:0] pc_out;
     prog_cntr #(
         .RESET_ADDR (RESET_VECTOR)
     ) prog_cntr (
         .clk,
         .rst_n,
-        .ld(pc_write | trap_pending),
-        .data(pc_data),
+        .ld(pc_write),
+        .data(pc_in),
         .count(pc_out)
     );
 
-    logic [31:0] next_pc;
-    assign next_pc = pc_out + 4;
-
-    // Branch Generator
-    logic take_branch;
+    /**
+    *      _                     _                    
+    *     | |__ _ _ __ _ _ _  __| |_    __ _ ___ _ _  
+    *     | '_ \ '_/ _` | ' \/ _| ' \  / _` / -_) ' \ 
+    *     |_.__/_| \__,_|_||_\__|_||_| \__, \___|_||_|
+    *                                  |___/          
+    */
     branch_gen branch_gen (
         .rs1(rs1_data),
         .rs2(rs2_data),
@@ -132,40 +180,53 @@ module multicycle #(
         .take_branch
     );
 
-    // Immediate Generator
-    logic [31:0] immed;
+    /**
+    *      _                    _                 
+    *     (_)_ __  _ __  ___ __| |  __ _ ___ _ _  
+    *     | | '  \| '  \/ -_) _` | / _` / -_) ' \ 
+    *     |_|_|_|_|_|_|_\___\__,_| \__, \___|_||_|
+    *                              |___/          
+    */
     immed_gen immed_gen (
         .inst,
         .immed_type,
         .immed
     );
 
-    // Register File Data MUX
-    logic [31:0] reg_data;
+    /**
+    *                   _    _              __ _ _     
+    *      _ _ ___ __ _(_)__| |_ ___ _ _   / _(_) |___ 
+    *     | '_/ -_) _` | (_-<  _/ -_) '_| |  _| | / -_)
+    *     |_| \___\__, |_/__/\__\___|_|   |_| |_|_\___|
+    *             |___/                                
+    */
     always_comb begin
         unique case(reg_src)
-            NEXT_PC: reg_data = next_pc;
-            ALU:     reg_data = alu_out;
-            MEM:     reg_data = data;
-            CSR:     reg_data = csr_rdata;
+            NEXT_PC: rd_data = next_pc;
+            ALU:     rd_data = alu_out;
+            MEM:     rd_data = data;
+            CSR:     rd_data = csr_rdata;
         endcase
     end
 
-    // Register File
-    logic [31:0] rs1_data, rs2_data;
     reg_file reg_file (
         .clk,
         .wr(reg_write),
         .rs1,
         .rs2,
         .rd,
-        .rd_data(reg_data),
+        .rd_data,
         .rs1_data,
         .rs2_data
     );
 
-    // ALU A Source MUX
-    logic [31:0] alu_a_data;
+    /**
+    *           _      
+    *      __ _| |_  _ 
+    *     / _` | | || |
+    *     \__,_|_|\_,_|
+    *                  
+    */
     always_comb begin
         unique case(alu_a_src)
             RS1:     alu_a_data = rs1_data;
@@ -174,9 +235,7 @@ module multicycle #(
             default: alu_a_data = '0;
         endcase
     end
-
-    // ALU B Source MUX
-    logic [31:0] alu_b_data;
+    
     always_comb begin
         unique case(alu_b_src)
             RS2: alu_b_data = rs2_data;
@@ -184,26 +243,22 @@ module multicycle #(
         endcase
     end
 
-    // ALU
-    logic [31:0] alu_out;
+    
     alu alu (
         .op(alu_op),
         .a(alu_a_data),
         .b(alu_b_data),
         .out(alu_out)
     );
+    
 
-
-    /////////////////////////////////////////////////////////
-    //   ___       _                             _         //
-    //  |_ _|_ __ | |_ ___ _ __ _ __ _   _ _ __ | |_ ___   //
-    //   | || '_ \| __/ _ \ '__| '__| | | | '_ \| __/ __|  //
-    //   | || | | | ||  __/ |  | |  | |_| | |_) | |_\__ \  //
-    //  |___|_| |_|\__\___|_|  |_|   \__,_| .__/ \__|___/  //
-    //                                    |_|              //
-    /////////////////////////////////////////////////////////
-    logic trap_pending;
-    logic [31:0] mip, trap_cause;
+    /**
+    *      _                       _           _ _         
+    *     (_)_ _ __ _   __ ___ _ _| |_ _ _ ___| | |___ _ _ 
+    *     | | '_/ _` | / _/ _ \ ' \  _| '_/ _ \ | / -_) '_|
+    *     |_|_| \__, | \__\___/_||_\__|_| \___/_|_\___|_|  
+    *              |_|                                     
+    */
     irq_controller irq_controller (
         .clk,
         .rst_n,
@@ -220,20 +275,19 @@ module multicycle #(
         .env_call,
         .env_break,
 
-        .trap_pending,
+        .interrupt_pending,
+        .exception_pending,
         .trap_cause
     );
 
 
-    ///////////////////////////////
-    //    ____ ____  ____        //
-    //   / ___/ ___||  _ \ ___   //
-    //  | |   \___ \| |_) / __|  //
-    //  | |___ ___) |  _ <\__ \  //
-    //   \____|____/|_| \_\___/  //
-    ///////////////////////////////
-    logic irq_en;
-    logic [31:0] csr_rdata, mie, mtvec, mepc;
+    /**
+    *                
+    *      __ ____ _ 
+    *     / _(_-< '_|
+    *     \__/__/_|  
+    *                
+    */
     csr csr (
         .clk,
         .rst_n,
@@ -254,7 +308,7 @@ module multicycle #(
 
         .mip,
         .trap_cause,
-        .trap_pending,
+        .trap_start,
         .trap_finish,
 
         .mtvec,
@@ -262,31 +316,25 @@ module multicycle #(
     );
 
 
-    ////////////////////////////////////////////////
-    //   __  __                                   //
-    //  |  \/  | ___ _ __ ___   ___  _ __ _   _   //
-    //  | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | |  //
-    //  | |  | |  __/ | | | | | (_) | |  | |_| |  //
-    //  |_|  |_|\___|_| |_| |_|\___/|_|   \__, |  //
-    //                                    |___/   //
-    ////////////////////////////////////////////////
-    logic [31:0] inst, data;
+    /**
+    *                                   
+    *      _ __  ___ _ __  ___ _ _ _  _ 
+    *     | '  \/ -_) '  \/ _ \ '_| || |
+    *     |_|_|_\___|_|_|_\___/_|  \_, |
+    *                              |__/ 
+    */
     memory memory(
         .clk_i       (clk),
         .rst_i       (~rst_n),
 
-        .imem_read,
-        .imem_ready,
-        .imem_addr   (pc_out),
+        .mem_request,
+        .mem_op,
+        .mem_addr,
+        .mem_size   (inst[13:12]),
+        .mem_sign   (inst[14]),
+        .mem_wdata  (rs2_data),
+        .mem_done,
         .instruction (inst),
-
-        .dmem_read,
-        .dmem_write,
-        .dmem_ready,
-        .dmem_size   (inst[13:12]),
-        .dmem_sign   (inst[14]),
-        .dmem_addr   (alu_out),
-        .dmem_wdata  (rs2_data),
         .data,
 
         .wb_cyc_o,

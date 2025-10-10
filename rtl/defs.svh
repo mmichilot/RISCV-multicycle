@@ -98,4 +98,10 @@ typedef enum logic [4:0] {
     HARDWARE_ERROR      = 5'd19
 } exception_codes_e;
 
+typedef enum logic [1:0] {
+    INST_READ,
+    DATA_READ,
+    DATA_WRITE
+} mem_op_e;
+
 `endif

@@ -18,7 +18,8 @@ module irq_controller (
     input logic env_call,
     input logic env_break,
     
-    output logic        trap_pending,
+    output logic        interrupt_pending,
+    output logic        exception_pending,
     output logic [31:0] trap_cause
 );
 
@@ -32,7 +33,6 @@ module irq_controller (
             mip <= interrupts;
     end
 
-    logic interrupt_pending, exception_pending;
     assign interrupt_pending = |(mip & mie) & irq_en;
     assign exception_pending = illegal_inst | inst_addr_misalign | load_addr_misalign | store_addr_misalign | env_call | env_break;
 
@@ -55,7 +55,6 @@ module irq_controller (
         end
     end
 
-    assign trap_cause   = {interrupt_pending, 31'(exception_code)};
-    assign trap_pending = interrupt_pending | exception_pending;
+    assign trap_cause = {interrupt_pending, 31'(exception_code)};
 
 endmodule

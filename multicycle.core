@@ -29,7 +29,17 @@ targets:
   default: &default
     filesets:
       - rtl
-    toplevel: core
+    toplevel: multicycle
+
+  lint:
+    <<: *default
+    description: Lint the core
+    flow: generic
+    flow_options:
+      tool: verilator
+      mode: lint-only
+      verilator_options: ["-Wall"]
+
 
   build: 
     <<: *default
@@ -37,7 +47,7 @@ targets:
     flow: generic
     flow_options:
       tool: verilator
-      verilator_options: ["--trace-fst", "--timing"]
+      verilator_options: ["-Wall", "--trace-fst", "--timing"]
     filesets_append:
       - tb
     toplevel: tb_top
