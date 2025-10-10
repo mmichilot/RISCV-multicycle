@@ -2,16 +2,13 @@
 `include "defs.svh"
 
 module decoder(
-    input [6:0] opcode,
-    input [2:0] func3,
-    // verilator lint_off UNUSED
-    input [6:0] func7,
+   // verilator lint_off UNUSED
+    input [31:0] inst,
     // verilator lint_on UNUSED
 
     input take_branch,
     input trap_start,
     input trap_finish,
-    input cpu_stall,
 
     output logic [2:0] immed_type,
 
@@ -19,8 +16,32 @@ module decoder(
     output logic alu_b_src,
     output logic [3:0] alu_op,
     output logic [1:0] reg_src,
-    output logic [2:0] pc_src
-    );
+    output logic [2:0] pc_src,
+
+    // Exceptions
+    output logic illegal_inst,
+
+    // verilator lint_off UNUSED
+    input [31:0] alu_out,
+    // verilator lint_on UNUSED
+    output logic inst_addr_misalign,
+    output logic load_addr_misalign,
+    output logic store_addr_misalign,
+
+    output logic env_call,
+    output logic env_break
+);
+
+    logic [6:0] opcode;
+    assign opcode = inst[6:0];
+
+    logic [2:0] func3;
+    assign func3 = inst[14:12];
+
+    // verilator lint_off UNUSED
+    logic [6:0] func7;
+    assign func7 = inst[31:25];
+    // verilator lint_on UNUSED
 
     // Immediate MUX
     always_comb begin
@@ -79,7 +100,6 @@ module decoder(
     always_comb begin
         if (trap_start)       pc_src = CSR_MTVEC;
         else if (trap_finish) pc_src = CSR_MEPC;
-        else if (cpu_stall)   pc_src = CURR_PC;  
         else begin
             unique case(opcode)
                 LUI, AUIPC, OP_IMM, OP, LOAD, STORE: pc_src = PC_PLUS_4;
@@ -99,6 +119,48 @@ module decoder(
             OP: alu_op = {func7[5], func3};
             OP_IMM: alu_op = (func3 == SHIFT_RIGHT) ? {func7[5], func3} : {1'b0, func3};
             default:    alu_op = '0;
+        endcase
+    end
+
+    // Exceptions8000027c:	00b50763          	beq	a0,a1,8000028a <inst_0+0x2a>
+    always_comb begin
+        inst_addr_misalign = 0;
+        load_addr_misalign = 0;
+        store_addr_misalign = 0;
+        env_call = 0;
+        env_break = 0;
+        illegal_inst = 0;
+
+        unique case(opcode)
+            LUI, AUIPC, OP_IMM, OP, FENCE: ;
+            JAL:  inst_addr_misalign = alu_out[1:0] != 2'b00;
+            JALR: inst_addr_misalign = alu_out[1] != 0;
+            BRANCH: inst_addr_misalign = alu_out[1:0] != 2'b00 && take_branch;
+            LOAD: begin
+                case (inst[13:12])
+                    WORD: load_addr_misalign = |alu_out[1:0];
+                    HALF: load_addr_misalign = alu_out[0];
+                    default: ;
+                endcase
+            end
+            STORE: begin
+                case (inst[13:12])
+                    WORD: store_addr_misalign = |alu_out[1:0];
+                    HALF: store_addr_misalign = alu_out[0];
+                    default: ;
+                endcase
+            end
+            SYSTEM: begin
+                if (func3 == '0) begin
+                    unique case (inst[31:20])
+                        MRET: ;
+                        ECALL:   env_call = 1;
+                        EBREAK:  env_break = 1;
+                        default: illegal_inst = 1;
+                    endcase
+                end
+            end
+            default: illegal_inst = 1;
         endcase
     end
 

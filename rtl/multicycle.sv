@@ -36,26 +36,21 @@ module multicycle #(
     assign rs2 = inst[24:20];
     assign rd  = inst[11:7];
 
-    logic [6:0] opcode;
-    assign opcode = inst[6:0];
-
     logic [2:0] func3;
     assign func3 = inst[14:12];
 
-    logic [6:0] func7;
-    assign func7 = inst[31:25];
-
     // Control unit
-    logic imem_read, dmem_read, dmem_write;
-    logic pc_write, reg_write, csr_write;
-    logic illegal_inst, inst_addr_misalign, load_addr_misalign, store_addr_misalign, env_call, env_break;
+    logic pc_write, mem_request, reg_write, csr_write;
     logic trap_start, trap_finish;
+    logic [1:0] mem_op;
 
     // Decoder
     logic alu_b_src;
     logic [1:0] alu_a_src, reg_src;
     logic [2:0] pc_src, immed_type;
     logic [3:0] alu_op;
+    logic illegal_inst, inst_addr_misalign, load_addr_misalign, store_addr_misalign, env_call, env_break;
+
 
     // Program Counter
     logic [31:0] pc_in, pc_out, next_pc;
@@ -74,7 +69,7 @@ module multicycle #(
     logic [31:0] alu_a_data, alu_b_data, alu_out;
 
     // IRQ Controller
-    logic trap_pending;
+    logic interrupt_pending, exception_pending;
     logic [31:0] mip, trap_cause;
 
     // CSR
@@ -82,8 +77,10 @@ module multicycle #(
     logic [31:0] csr_rdata, mie, mtvec, mepc;
 
     // Memory
-    logic cpu_stall;
+    logic mem_done;
     logic [31:0] inst, data;
+    logic [31:0] mem_addr;
+    assign mem_addr = (mem_op == INST_READ) ? pc_out : alu_out;
 
     /**
     *                 _           _             _ _   
@@ -97,28 +94,16 @@ module multicycle #(
         .rst_n,
         .inst,
 
-        .take_branch,
-        .cpu_stall,
-
         // Trap Handling
-        .trap_pending,
+        .interrupt_pending,
+        .exception_pending,
         .trap_start,
         .trap_finish,
 
-        .mem_addr(alu_out),
-
-        // Exceptions
-        .illegal_inst,
-        .inst_addr_misalign,
-        .load_addr_misalign,
-        .store_addr_misalign,
-        .env_call,
-        .env_break,
-
         .pc_write,
-        .imem_read,
-        .dmem_read,
-        .dmem_write,
+        .mem_request,
+        .mem_op,
+        .mem_done,
         .reg_write,
         .csr_write
     );
@@ -131,9 +116,7 @@ module multicycle #(
     *                                    
     */
     decoder decoder (
-    	.opcode,
-        .func3,
-        .func7,
+    	.inst,
 
         .take_branch,
         .trap_start,
@@ -144,7 +127,15 @@ module multicycle #(
         .alu_b_src,
         .alu_op,
         .reg_src,
-        .pc_src
+        .pc_src,
+
+        .illegal_inst,
+        .alu_out,
+        .inst_addr_misalign,
+        .load_addr_misalign,
+        .store_addr_misalign,
+        .env_call,
+        .env_break
     );
 
     /**
@@ -284,7 +275,8 @@ module multicycle #(
         .env_call,
         .env_break,
 
-        .trap_pending,
+        .interrupt_pending,
+        .exception_pending,
         .trap_cause
     );
 
@@ -335,18 +327,14 @@ module multicycle #(
         .clk_i       (clk),
         .rst_i       (~rst_n),
 
-        .cpu_stall,
-
-        .imem_read,
-        .imem_addr   (pc_out),
+        .mem_request,
+        .mem_op,
+        .mem_addr,
+        .mem_size   (inst[13:12]),
+        .mem_sign   (inst[14]),
+        .mem_wdata  (rs2_data),
+        .mem_done,
         .instruction (inst),
-
-        .dmem_read,
-        .dmem_write,
-        .dmem_size   (inst[13:12]),
-        .dmem_sign   (inst[14]),
-        .dmem_addr   (alu_out),
-        .dmem_wdata  (rs2_data),
         .data,
 
         .wb_cyc_o,

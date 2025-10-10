@@ -12,8 +12,6 @@ module tb_top
         input string     mem_file
     );
 
-    logic [31:0] interrupts;
-
     logic wb_cyc_o, wb_stb_o, wb_ack_i, wb_we_o;
     logic [3:0] wb_sel_o;
     logic [31:0] wb_adr_o, wb_dat_o, wb_dat_i;
@@ -31,7 +29,7 @@ module tb_top
         .wb_dat_o,
         .wb_dat_i,
 
-        .interrupts
+        .interrupts ('0)
     );
 
     // Memory
@@ -41,19 +39,14 @@ module tb_top
     logic [31:0] mem [SRAM_BYTES / 4];
 
     always_ff @(posedge clk) begin
-        int random_delay;
-        random_delay = $random % 10;
-
         wb_ack_i <= 0;
-        if (wb_cyc_o & wb_stb_o & ~wb_ack_i) begin
+        if (wb_cyc_o & wb_stb_o) begin
             integer i;
             for (i = 0; i < 4; i++) begin
                 if (wb_we_o & wb_sel_o[i])
                     mem[wb_adr_o[SRAM_WIDTH-1:2]][8*i +: 8] <= wb_dat_o[8*i +: 8];
             end
             wb_dat_i <= mem[wb_adr_o[SRAM_WIDTH-1:2]];
-
-            repeat (random_delay) @(posedge clk);
             wb_ack_i <= 1;
         end
     end
@@ -80,9 +73,11 @@ module tb_top
     assign mailbox_data  = wb_dat_o;
 
     parameter MAX_CYCLE_COUNT = 200_000;
-
-    int cycleCnt = 0;
-    always @(negedge clk) begin
+    int cycleCnt;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            cycleCnt <= '0;
+            
         cycleCnt <= cycleCnt + 1;
 
         if (cycleCnt == MAX_CYCLE_COUNT) begin

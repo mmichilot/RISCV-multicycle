@@ -20,7 +20,7 @@ typedef enum logic [2:0] {I_IMMED, S_IMMED, B_IMMED, U_IMMED, J_IMMED} immed_typ
 typedef enum logic [1:0] {RS1, CURR_PC, ZERO} alu_a_src_e;
 typedef enum logic {RS2, IMMED} alu_b_src_e;
 typedef enum logic [1:0] {NEXT_PC, ALU, MEM, CSR} reg_src_e;
-typedef enum logic [2:0] {CURR_PC, PC_PLUS_4, ALU_OUT, LSB_ZERO, CSR_MTVEC, CSR_MEPC} pc_src_e;
+typedef enum logic [2:0] {PC_PLUS_4, ALU_OUT, LSB_ZERO, CSR_MTVEC, CSR_MEPC} pc_src_e;
 typedef enum logic {CSR_RS1, CSR_IMMED} csr_src_e;
 
 typedef enum logic {
@@ -97,5 +97,11 @@ typedef enum logic [4:0] {
     ENV_CALL            = 5'd11,
     HARDWARE_ERROR      = 5'd19
 } exception_codes_e;
+
+typedef enum logic [1:0] {
+    INST_READ,
+    DATA_READ,
+    DATA_WRITE
+} mem_op_e;
 
 `endif
